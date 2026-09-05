@@ -1,0 +1,64 @@
+{
+  "sensors": [
+    {
+      "id": "OHRC",
+      "name": "Orbiter High Resolution Camera",
+      "instrument": "OHRC",
+      "gsd_m_per_pixel": 0.28,
+      "gsd_m_per_px": 0.28,
+      "gsd": 0.28,
+      "modality": "panchromatic_high_resolution",
+      "modality_label": "Panchromatic High-Resolution Optical",
+      "bands": 1,
+      "swath_km": 3.0,
+      "spectral_range_um": "0.45 - 0.70",
+      "stereo_capability": false,
+      "status": "operational",
+      "description": "Very high resolution lunar optical imagery for fine hazard detection, small crater resolution, and pinpoint landmark navigation.",
+      "theme_accent": "emerald"
+    },
+    {
+      "id": "TMC2",
+      "name": "Terrain Mapping Camera-2",
+      "instrument": "TMC-2",
+      "gsd_m_per_pixel": 5.0,
+      "gsd_m_per_px": 5.0,
+      "gsd": 5.0,
+      "modality": "panchromatic_stereo_triplet",
+      "modality_label": "Panchromatic Stereo Triplet (Fore-Nadir-Aft)",
+      "bands": 1,
+      "swath_km": 20.0,
+      "spectral_range_um": "0.50 - 0.85",
+      "stereo_capability": true,
+      "status": "operational",
+      "description": "Stereo triplet mapping camera providing regional 3D digital elevation models and intermediate scale contextual bridge.",
+      "theme_accent": "cyan"
+    },
+    {
+      "id": "IIRS",
+      "name": "Imaging Infra-Red Spectrometer",
+      "instrument": "IIRS",
+      "gsd_m_per_pixel": 86.5,
+      "gsd_m_per_px": 86.5,
+      "gsd": 86.5,
+      "modality": "hyperspectral",
+      "modality_label": "Hyperspectral (256 Contiguous Bands)",
+      "bands": 256,
+      "swath_km": 20.0,
+      "spectral_range_um": "0.80 - 5.00",
+      "stereo_capability": false,
+      "status": "operational",
+      "description": "Hyperspectral mineralogical sensor mapped via calibrated band synthesis and panchromatic proxy representations.",
+      "theme_accent": "amber"
+    }
+  ],
+  "scale_ratios": {
+    "IIRS_to_TMC2": 17.3,
+    "TMC2_to_OHRC": 17.86,
+    "IIRS_to_OHRC": 308.93
+  },
+  "hierarchical_bridge": {
+    "bridge_sensor": "TMC-2",
+    "rationale": "Direct 308.93x matching from IIRS (86.5m) to OHRC (0.28m) suffers from severe resolution disparity. TMC-2 (5.0m) acts as the bridge sensor with two tractable ~17.5x scale stages."
+  }
+}

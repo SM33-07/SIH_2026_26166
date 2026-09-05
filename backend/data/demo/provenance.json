@@ -1,0 +1,43 @@
+{
+  "scientific_states": {
+    "SPATIALLY PAIRED": "Real lunar scenes that share genuine spatial/geographic overlap between Chandrayaan-2 instruments.",
+    "GEOGRAPHICALLY ASSOCIATED": "Nearest-neighbor counterpart tile selected from regional survey imagery based on lunar coordinate proximity.",
+    "MODEL VALIDATION PENDING": "Real imagery is confirmed and spatially co-located, but dense learned feature correspondence inference and geometric validation have not yet been completed.",
+    "INTEGRATION PENDING": "Multi-sensor registration bridge pipeline scheduled for deployment in the three-instrument release.",
+    "APPROXIMATE GEOMETRY": "Pixel-to-lunar coordinate mapping derived from planning/visualization ephemeris rather than rigorous bundle-adjusted SPICE kernels.",
+    "SYNTHETIC BENCHMARK": "High-fidelity synthetic rendering benchmark used to rigorously validate fine-adapted LoFTR performance under controlled sun-angle variations.",
+    "VALIDATED BENCHMARK": "Empirically measured, peer-verifiable error metrics from 500+ controlled synthetic correspondence pairs."
+  },
+  "limitations": [
+    {
+      "id": "lim_01",
+      "title": "Raw Product Calibration",
+      "detail": "IIRS source products are currently ingested in Raw/Level-1 format; photometric shading and stray-light corrections are preliminary."
+    },
+    {
+      "id": "lim_02",
+      "title": "Approximate Lunar Geolocation",
+      "detail": "The current pixel-to-lunar geometry (iirs_pixel_lat_lon_approx.npy) is for planning and visual correspondence demonstration; it is not yet tied to high-order SPICE SPK/CK kernels."
+    },
+    {
+      "id": "lim_03",
+      "title": "Synthetic Benchmark Scope",
+      "detail": "Verified sub-pixel benchmark metrics (0.3801 px normal, 0.5458 px stress) represent the fine-adapted LoFTR model evaluated on synthetic IIRS pairs, not real-scene three-sensor accuracy."
+    },
+    {
+      "id": "lim_04",
+      "title": "TMC-2 / OHRC Model Integration",
+      "detail": "TMC-2 to OHRC learned correspondence model fine-tuning is actively ongoing; real pair correspondence endpoints return explicit pending states to prevent data fabrication."
+    },
+    {
+      "id": "lim_05",
+      "title": "Three-Way Geometric Validation",
+      "detail": "Full three-sensor closed-loop geometric validation (cycle consistency error < 1 px across IIRS-TMC2-OHRC) remains under development."
+    },
+    {
+      "id": "lim_06",
+      "title": "Geographic Pairing vs. Learned Validation",
+      "detail": "Deterministic geographic pairing of scenes/tiles confirms geographic proximity, which is distinct from solved and validated feature correspondence."
+    }
+  ]
+}

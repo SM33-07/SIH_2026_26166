@@ -12,5 +12,7 @@ class Settings:
     BASE_DIR: str = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
     DATA_DIR: str = os.getenv("DATA_DIR", os.path.join(BASE_DIR, "data"))
     CACHE_DIR: str = os.getenv("CACHE_DIR", os.path.join(BASE_DIR, "cache"))
+    DEMO_MODE: bool = os.getenv("DEMO_MODE", "true").lower() in ("true", "1", "t")
+    DEMO_DIR: str = os.path.join(DATA_DIR, "demo")
 
 settings = Settings()

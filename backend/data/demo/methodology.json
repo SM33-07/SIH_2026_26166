@@ -1,0 +1,72 @@
+{
+  "title": "SIH26166 Processing Methodology",
+  "description": "Seven-stage multi-modal, sun-angle and scale-invariant co-registration pipeline designed for Chandrayaan-2 lunar instruments.",
+  "pipeline_stages": [
+    {
+      "stage": 1,
+      "name": "Data Ingestion & Calibration",
+      "description": "Standardized ingestion of raw PDS4/HDF5 data, geo-referencing coordinates, and calibrated reflectance conversion.",
+      "inputs": [
+        "Raw IIRS QUBE",
+        "TMC-2 Triplet",
+        "OHRC Strip"
+      ],
+      "status": "operational"
+    },
+    {
+      "stage": 2,
+      "name": "Multi-Scale Pyramid Rescaling",
+      "description": "Gaussian scale-space pyramid alignment handling the 17.3x to 308.93x spatial resolution gap between sensors.",
+      "inputs": [
+        "Calibrated Panchromatic & Proxy Images"
+      ],
+      "status": "operational"
+    },
+    {
+      "stage": 3,
+      "name": "Illumination Normalization",
+      "description": "Photometric reflectance modeling and adaptive wallis filter normalization across varying solar incidence angles (5\u00b0 to 85\u00b0).",
+      "inputs": [
+        "Multi-Sun Angle Image Pairs"
+      ],
+      "status": "operational"
+    },
+    {
+      "stage": 4,
+      "name": "Learned Coarse-to-Fine LoFTR Matching",
+      "description": "Detector-free transformer correspondence establishing dense feature matches across modality boundaries.",
+      "inputs": [
+        "Normalized Image Pairs"
+      ],
+      "status": "validated_on_synthetic_iirs"
+    },
+    {
+      "stage": 5,
+      "name": "Spatial Confidence Heatmap Generation",
+      "description": "Per-pixel match probability field computation isolating high-certainty lunar landmarks from low-texture maria.",
+      "inputs": [
+        "Transformer Correlation Maps"
+      ],
+      "status": "operational"
+    },
+    {
+      "stage": 6,
+      "name": "Robust Projective Fitting / MAGSAC++",
+      "description": "Marginalizing sample consensus with threshold-free geometric estimation for accurate homography & affine model recovery.",
+      "inputs": [
+        "Dense Correspondences & Weights"
+      ],
+      "status": "operational"
+    },
+    {
+      "stage": 7,
+      "name": "Hierarchical Tri-Sensor Co-Registration",
+      "description": "Chained composite transformation (IIRS \u2194 TMC-2 \u2194 OHRC) bridging 86.5m to 0.28m via intermediate TMC-2 5.0m geometry.",
+      "inputs": [
+        "IIRS\u2194TMC2 Transform",
+        "TMC2\u2194OHRC Transform"
+      ],
+      "status": "integration_pending"
+    }
+  ]
+}

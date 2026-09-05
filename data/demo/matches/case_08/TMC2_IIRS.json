@@ -1,0 +1,22 @@
+{
+  "job_id": "case_08_tmc2_iirs",
+  "status": "integration_pending",
+  "modality_pair_type": "TMC2-IIRS",
+  "keypoints_a": [],
+  "keypoints_b": [],
+  "correspondences": [],
+  "inlier_mask": [],
+  "homography": null,
+  "metrics": null,
+  "warnings": [
+    "Three-instrument co-registration pipeline integration in progress for TMC2-IIRS.",
+    "Full scientific cross-modal registration scheduled for multi-instrument pipeline release."
+  ],
+  "visualizations": {
+    "correspondences": "/static/demo/tmc2_lowres_5m.png",
+    "warped_b": "/static/demo/iirs_composite_proxy.png",
+    "blended_overlay": "/static/demo/tmc2_lowres_5m.png",
+    "flicker_composite": "/static/demo/iirs_composite_proxy.png",
+    "confidence_heatmap": "/static/demo/tmc2_lowres_5m.png"
+  }
+}

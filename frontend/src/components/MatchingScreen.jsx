@@ -1,13 +1,27 @@
 import React, { useEffect } from 'react'
-import { Play, Settings2, Sliders, Info, Sparkles, AlertCircle } from 'lucide-react'
+import {
+  Play,
+  Settings2,
+  Sliders,
+  Info,
+  Sparkles,
+  AlertCircle,
+  MapPin,
+  Clock,
+  CheckCircle2,
+  Layers,
+  ArrowRight
+} from 'lucide-react'
 import { useMatchStore } from '../store/matchStore'
 
 export default function MatchingScreen() {
   const {
-    demoPairs,
-    selectedPairId,
-    selectDemoPair,
-    setDemoPairs,
+    cases,
+    selectedCaseId,
+    selectCase,
+    selectedGraphPair,
+    loadCasePairMatch,
+    matchResult,
     imageAId,
     imageBId,
     modalityA,
@@ -21,65 +35,144 @@ export default function MatchingScreen() {
     runMatch,
     isLoading,
     progressStage,
-    error
+    error,
+    setActiveTab
   } = useMatchStore()
 
-  useEffect(() => {
-    fetch('/api/demo/pairs')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.pairs) {
-          setDemoPairs(data.pairs)
-        }
-      })
-      .catch((err) => console.error('Failed to load demo pairs', err))
-  }, [])
+  const currentCase = cases.find((c) => c.id === selectedCaseId) || cases[0]
+
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'validated':
+        return (
+          <span className="inline-flex items-center space-x-1 bg-emerald-500/10 text-emerald-400 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-emerald-500/20">
+            <CheckCircle2 className="w-3 h-3" />
+            <span>Validated</span>
+          </span>
+        )
+      case 'demo_precomputed':
+        return (
+          <span className="inline-flex items-center space-x-1 bg-sky-500/10 text-sky-400 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-sky-500/20">
+            <Sparkles className="w-3 h-3" />
+            <span>Demo Precomputed</span>
+          </span>
+        )
+      case 'integration_pending':
+      default:
+        return (
+          <span className="inline-flex items-center space-x-1 bg-amber-500/10 text-amber-400 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-amber-500/20">
+            <Clock className="w-3 h-3" />
+            <span>Integration in Progress</span>
+          </span>
+        )
+    }
+  }
+
+  const isPending = matchResult?.status === 'integration_pending'
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 py-6">
-      {/* Demo Preset Selector */}
+    <div className="max-w-7xl mx-auto space-y-6 py-6">
+      {/* 10 Cases Selector Carousel / Pills */}
       <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <Sparkles className="w-5 h-5 text-sky-400" />
-            <h3 className="text-sm font-bold text-white tracking-wide">CHANDRAYAAN-2 DEMO DATASET PRESETS</h3>
+            <MapPin className="w-5 h-5 text-sky-400" />
+            <h3 className="text-sm font-bold text-white tracking-wide">
+              CHANDRAYAAN-2 DEMONSTRATION CASES (10 CASES)
+            </h3>
           </div>
-          <span className="text-xs text-slate-400">Offline Hackathon Safe</span>
+          <span className="text-xs text-slate-400">Select any case to evaluate</span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {demoPairs.map((pair) => {
-            const isSelected = selectedPairId === pair.id
+        {/* Case Cards Carousel */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+          {cases.map((c, idx) => {
+            const isSelected = selectedCaseId === c.id
             return (
               <button
-                key={pair.id}
-                onClick={() => selectDemoPair(pair.id)}
-                className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
+                key={c.id}
+                onClick={() => selectCase(c.id)}
+                className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                   isSelected
-                    ? 'bg-sky-500/10 border-sky-500/50 shadow-md shadow-sky-500/10'
-                    : 'bg-slate-800/40 border-slate-800 hover:border-slate-700'
+                    ? 'bg-sky-500/10 border-sky-500 shadow-md shadow-sky-500/10 text-white'
+                    : 'bg-slate-800/40 border-slate-800 hover:border-slate-700 text-slate-300'
                 }`}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-semibold text-white">{pair.name}</span>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-sky-400 border border-slate-700">
-                    {pair.instrument_a} ↔ {pair.instrument_b}
-                  </span>
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-[10px] font-mono font-bold text-sky-400">CASE {idx + 1}</span>
+                  <span className="text-[9px] font-mono text-slate-500 truncate">{c.pairs?.length || 0} pairs</span>
                 </div>
-                <p className="text-xs text-slate-400 line-clamp-2">{pair.description}</p>
+                <p className="text-xs font-semibold truncate text-white">{c.region}</p>
+                <p className="text-[10px] text-slate-400 line-clamp-1">{c.name}</p>
               </button>
             )
           })}
         </div>
+
+        {/* Active Case Details & Available Sensor Pairs */}
+        {currentCase && (
+          <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700/80 space-y-3">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
+              <div>
+                <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+                  Active Case: {currentCase.name} ({currentCase.region})
+                </h4>
+                <p className="text-xs text-slate-400">{currentCase.description}</p>
+              </div>
+              <div className="text-[11px] font-mono text-slate-400">
+                Coords: {currentCase.latitude}°, {currentCase.longitude}°
+              </div>
+            </div>
+
+            {/* Available Sensor Pairs in this Case */}
+            <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-700/50">
+              <span className="text-[11px] text-slate-400 font-semibold mr-1">Sensor Pairs:</span>
+              {currentCase.pairs?.map((p) => {
+                const isSelected = selectedGraphPair === p.pair_key
+                return (
+                  <button
+                    key={p.pair_key}
+                    onClick={() => loadCasePairMatch(currentCase.id, p.pair_key)}
+                    className={`inline-flex items-center space-x-2 px-3 py-1.5 rounded-lg border text-xs font-mono transition-all cursor-pointer ${
+                      isSelected
+                        ? 'bg-sky-500/20 border-sky-500 text-white font-semibold'
+                        : 'bg-slate-800 border-slate-700 text-slate-300 hover:border-slate-600'
+                    }`}
+                  >
+                    <span>{p.instrument_a} ↔ {p.instrument_b}</span>
+                    {getStatusBadge(p.status)}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Integration Pending Notice (if active pair is pending) */}
+      {isPending && (
+        <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded-2xl flex items-start space-x-3 text-xs text-amber-200">
+          <Clock className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <span className="font-bold text-white">Three-Instrument Joint Registration In Progress</span>
+            <p className="text-slate-300 leading-relaxed">
+              The cross-modal registration pipeline for this pair ({modalityA} ↔ {modalityB}) is actively in integration.
+              In accordance with scientific rigor, no fabricated metrics are generated. You can inspect the pre-registered
+              lunar imaging footprints below or test our validated OHRC and IIRS pipeline branches.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Dual Image Selection & Metadata */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Image A */}
         <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-4">
           <div className="flex justify-between items-center pb-3 border-b border-slate-800">
-            <h4 className="text-sm font-bold text-sky-400">IMAGE A (REFERENCE)</h4>
-            <span className="text-xs font-mono text-slate-400">{modalityA}</span>
+            <h4 className="text-sm font-bold text-sky-400">IMAGE A (REFERENCE FRAME)</h4>
+            <span className="text-xs font-mono px-2 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/20">
+              {modalityA}
+            </span>
           </div>
 
           <div className="aspect-video bg-slate-950 rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center relative">
@@ -96,11 +189,11 @@ export default function MatchingScreen() {
 
           <div className="grid grid-cols-2 gap-3 text-xs">
             <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-800">
-              <span className="text-slate-400 block text-[10px]">GSD (M/PIXEL)</span>
-              <span className="text-white font-mono font-semibold">{gsdA} m/px</span>
+              <span className="text-slate-400 block text-[10px]">GROUND SAMPLING DISTANCE</span>
+              <span className="text-white font-mono font-semibold">{gsdA} m/pixel</span>
             </div>
             <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-800">
-              <span className="text-slate-400 block text-[10px]">SUN ELEVATION</span>
+              <span className="text-slate-400 block text-[10px]">SUN ELEVATION ANGLE</span>
               <span className="text-white font-mono font-semibold">{sunElevationA}°</span>
             </div>
           </div>
@@ -110,7 +203,9 @@ export default function MatchingScreen() {
         <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-4">
           <div className="flex justify-between items-center pb-3 border-b border-slate-800">
             <h4 className="text-sm font-bold text-indigo-400">IMAGE B (TARGET TO WARP)</h4>
-            <span className="text-xs font-mono text-slate-400">{modalityB}</span>
+            <span className="text-xs font-mono px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+              {modalityB}
+            </span>
           </div>
 
           <div className="aspect-video bg-slate-950 rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center relative">
@@ -127,11 +222,11 @@ export default function MatchingScreen() {
 
           <div className="grid grid-cols-2 gap-3 text-xs">
             <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-800">
-              <span className="text-slate-400 block text-[10px]">GSD (M/PIXEL)</span>
-              <span className="text-white font-mono font-semibold">{gsdB} m/px</span>
+              <span className="text-slate-400 block text-[10px]">GROUND SAMPLING DISTANCE</span>
+              <span className="text-white font-mono font-semibold">{gsdB} m/pixel</span>
             </div>
             <div className="bg-slate-800/50 p-3 rounded-lg border border-slate-800">
-              <span className="text-slate-400 block text-[10px]">SUN ELEVATION</span>
+              <span className="text-slate-400 block text-[10px]">SUN ELEVATION ANGLE</span>
               <span className="text-white font-mono font-semibold">{sunElevationB}°</span>
             </div>
           </div>
@@ -146,7 +241,7 @@ export default function MatchingScreen() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 text-xs">
-          {/* Pipeline Type */}
+          {/* Matcher Engine */}
           <div className="space-y-2">
             <label className="text-slate-300 font-semibold block">Matcher Engine</label>
             <select
@@ -154,12 +249,12 @@ export default function MatchingScreen() {
               onChange={(e) => setOptions({ pipeline: e.target.value })}
               className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-white font-medium focus:border-sky-500 focus:outline-none"
             >
-              <option value="proposed">Proposed Learned (LoFTR PyTorch)</option>
+              <option value="proposed">Proposed Learned (LoFTR Cross-Attention)</option>
               <option value="classical">Classical Baseline (SIFT / AKAZE)</option>
             </select>
           </div>
 
-          {/* Classical Algorithm choice */}
+          {/* Classical Feature Algorithm */}
           {options.pipeline === 'classical' && (
             <div className="space-y-2">
               <label className="text-slate-300 font-semibold block">Classical Feature Algorithm</label>
@@ -175,7 +270,7 @@ export default function MatchingScreen() {
             </div>
           )}
 
-          {/* Illumination toggle */}
+          {/* Illumination Normalization */}
           <div className="space-y-2">
             <label className="text-slate-300 font-semibold block">Illumination Normalization</label>
             <div className="flex items-center space-x-3 bg-slate-800/60 border border-slate-700/80 p-2.5 rounded-lg">
@@ -189,7 +284,7 @@ export default function MatchingScreen() {
             </div>
           </div>
 
-          {/* Shadow Mask toggle */}
+          {/* Shadow Mask */}
           <div className="space-y-2">
             <label className="text-slate-300 font-semibold block">Shadow Feature Masking</label>
             <div className="flex items-center space-x-3 bg-slate-800/60 border border-slate-700/80 p-2.5 rounded-lg">
@@ -199,11 +294,11 @@ export default function MatchingScreen() {
                 onChange={(e) => setOptions({ use_shadow_mask: e.target.checked })}
                 className="w-4 h-4 accent-sky-500 rounded cursor-pointer"
               />
-              <span className="text-slate-300">Mask Low-Signal Shadows</span>
+              <span className="text-slate-300">Mask Low-Signal Cast Shadows</span>
             </div>
           </div>
 
-          {/* Scale Pyramid toggle */}
+          {/* Scale Pyramid */}
           <div className="space-y-2">
             <label className="text-slate-300 font-semibold block">Multi-Scale Pyramid</label>
             <div className="flex items-center space-x-3 bg-slate-800/60 border border-slate-700/80 p-2.5 rounded-lg">
@@ -213,12 +308,12 @@ export default function MatchingScreen() {
                 onChange={(e) => setOptions({ use_scale_pyramid: e.target.checked })}
                 className="w-4 h-4 accent-sky-500 rounded cursor-pointer"
               />
-              <span className="text-slate-300">Pyramid Rescaling (20x Gap)</span>
+              <span className="text-slate-300">Pyramid Rescaling (18x-300x Gap)</span>
             </div>
           </div>
         </div>
 
-        {/* Action Button */}
+        {/* Error / Alert */}
         {error && (
           <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center space-x-2">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -226,6 +321,7 @@ export default function MatchingScreen() {
           </div>
         )}
 
+        {/* Action Button */}
         <div className="pt-2 flex justify-end">
           <button
             onClick={runMatch}

@@ -1,0 +1,22 @@
+{
+  "job_id": "case_10_ohrc_tmc2",
+  "status": "integration_pending",
+  "modality_pair_type": "OHRC-TMC2",
+  "keypoints_a": [],
+  "keypoints_b": [],
+  "correspondences": [],
+  "inlier_mask": [],
+  "homography": null,
+  "metrics": null,
+  "warnings": [
+    "Three-instrument co-registration pipeline integration in progress for OHRC-TMC2.",
+    "Full scientific cross-modal registration scheduled for multi-instrument pipeline release."
+  ],
+  "visualizations": {
+    "correspondences": "/static/demo/ohrc_highres_025m.png",
+    "warped_b": "/static/demo/tmc2_lowres_5m.png",
+    "blended_overlay": "/static/demo/ohrc_highres_025m.png",
+    "flicker_composite": "/static/demo/tmc2_lowres_5m.png",
+    "confidence_heatmap": "/static/demo/ohrc_highres_025m.png"
+  }
+}

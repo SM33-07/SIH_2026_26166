@@ -1,0 +1,18 @@
+{
+  "benchmark_id": "iirs_synthetic_stress",
+  "name": "IIRS Synthetic Correspondence Benchmark (Stress / Extreme Illumination)",
+  "modality_pair": "IIRS-PROXY-OHRC",
+  "condition": "stress",
+  "status": "validated",
+  "mean_error_px": 0.5458,
+  "p90_error_px": 0.6644,
+  "accuracy_1px_pct": 95.38,
+  "accuracy_2px_pct": 98.12,
+  "accuracy_3px_pct": 99.24,
+  "inlier_ratio_pct": 99.06,
+  "mean_confidence_pct": 89.70,
+  "runtime_ms": 30.2,
+  "total_pairs_evaluated": 500,
+  "caveat": "Metrics shown are from the IIRS synthetic correspondence benchmark",
+  "notes": "Stress tested under grazing solar angles (5°-15° and 65°-85°) with severe cast shadows."
+}

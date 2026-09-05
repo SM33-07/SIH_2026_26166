@@ -1,0 +1,18 @@
+{
+  "benchmark_id": "iirs_synthetic_normal",
+  "name": "IIRS Synthetic Correspondence Benchmark (Normal Conditions)",
+  "modality_pair": "IIRS-PROXY-OHRC",
+  "condition": "normal",
+  "status": "validated",
+  "mean_error_px": 0.3801,
+  "p90_error_px": 0.5684,
+  "accuracy_1px_pct": 96.95,
+  "accuracy_2px_pct": 99.11,
+  "accuracy_3px_pct": 99.55,
+  "inlier_ratio_pct": 99.42,
+  "mean_confidence_pct": 90.36,
+  "runtime_ms": 29.4,
+  "total_pairs_evaluated": 500,
+  "caveat": "Metrics shown are from the IIRS synthetic correspondence benchmark",
+  "notes": "Validated under standard illumination angles (15°-45°) with synthetic panchromatic proxy synthesis."
+}

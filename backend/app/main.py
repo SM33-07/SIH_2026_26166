@@ -8,7 +8,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from backend.app.config import settings
-from backend.app.api import routes_health, routes_upload, routes_match, routes_evaluation, routes_export
+from backend.app.api import (
+    routes_health,
+    routes_upload,
+    routes_match,
+    routes_evaluation,
+    routes_export,
+    routes_sensors,
+    routes_cases,
+    routes_benchmarks,
+    routes_graph,
+    routes_methodology,
+    routes_provenance
+)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -40,6 +52,12 @@ app.include_router(routes_upload.router)
 app.include_router(routes_match.router)
 app.include_router(routes_evaluation.router)
 app.include_router(routes_export.router)
+app.include_router(routes_sensors.router)
+app.include_router(routes_cases.router)
+app.include_router(routes_benchmarks.router)
+app.include_router(routes_graph.router)
+app.include_router(routes_methodology.router)
+app.include_router(routes_provenance.router)
 
 if __name__ == "__main__":
     import uvicorn

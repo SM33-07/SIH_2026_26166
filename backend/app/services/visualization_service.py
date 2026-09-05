@@ -2,13 +2,35 @@
 Visualization Service for Rendering Keypoints, Correspondences, Alignment Overlay, and Heatmaps (SIH26166).
 """
 
-import cv2
-import numpy as np
 import base64
 from typing import List, Tuple, Optional, Dict, Any
 
-from ml.geometry.robust_transform import warp_image
-from ml.geometry.confidence import generate_spatial_confidence_map
+try:
+    import cv2
+except ImportError:
+    cv2 = None
+
+try:
+    import numpy as np
+except ImportError:
+    np = None
+
+try:
+    from ml.geometry.robust_transform import warp_image
+    from ml.geometry.confidence import generate_spatial_confidence_map
+except ImportError:
+    warp_image = None
+    generate_spatial_confidence_map = None
+
+def get_demo_visualization_urls(image_a_filename: str = "ohrc_sun18deg.png", image_b_filename: str = "ohrc_sun52deg.png") -> Dict[str, str]:
+    """Provides fallback visualization URLs using static demo files."""
+    return {
+        "correspondences": f"/static/demo/{image_a_filename}",
+        "warped_b": f"/static/demo/{image_b_filename}",
+        "blended_overlay": f"/static/demo/{image_a_filename}",
+        "flicker_composite": f"/static/demo/{image_b_filename}",
+        "confidence_heatmap": f"/static/demo/{image_a_filename}"
+    }
 
 def image_to_base64(img: np.ndarray, format_ext: str = ".png") -> str:
     """Encodes numpy uint8 BGR/Gray image to Base64 data URL string."""

@@ -1,13 +1,18 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import Header from './components/Header'
 import OverviewScreen from './components/OverviewScreen'
 import MatchingScreen from './components/MatchingScreen'
+import ThreeSensorView from './components/ThreeSensorView'
 import ResultsDashboard from './components/ResultsDashboard'
 import EvaluationComparison from './components/EvaluationComparison'
 import { useMatchStore } from './store/matchStore'
 
 export default function App() {
-  const { activeTab } = useMatchStore()
+  const { activeTab, initAppData } = useMatchStore()
+
+  useEffect(() => {
+    initAppData()
+  }, [])
 
   return (
     <div className="min-h-screen bg-[#0B0F19] text-slate-100 flex flex-col">
@@ -15,6 +20,7 @@ export default function App() {
       <main className="flex-1 px-6 pb-12">
         {activeTab === 'overview' && <OverviewScreen />}
         {activeTab === 'matching' && <MatchingScreen />}
+        {activeTab === 'threesensor' && <ThreeSensorView />}
         {activeTab === 'results' && <ResultsDashboard />}
         {activeTab === 'benchmark' && <EvaluationComparison />}
       </main>

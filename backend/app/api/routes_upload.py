@@ -6,9 +6,14 @@ import os
 import json
 import uuid
 import shutil
-import cv2
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from backend.app.config import settings
+
+try:
+    import cv2
+except ImportError:
+    cv2 = None
+
 
 router = APIRouter()
 
@@ -34,8 +39,11 @@ async def upload_image(
     with open(save_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    img = cv2.imread(save_path)
-    h, w = img.shape[:2] if img is not None else (512, 512)
+    if cv2 is not None:
+        img = cv2.imread(save_path)
+        h, w = img.shape[:2] if img is not None else (512, 512)
+    else:
+        h, w = (512, 512)
 
     return {
         "id": img_id,

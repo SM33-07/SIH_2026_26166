@@ -1,5 +1,5 @@
 import React from 'react'
-import { Layers, Activity, Cpu, HelpCircle, BarChart2 } from 'lucide-react'
+import { Layers, Activity, HelpCircle, BarChart2, Share2 } from 'lucide-react'
 import { useMatchStore } from '../store/matchStore'
 
 export default function Header() {
@@ -8,6 +8,7 @@ export default function Header() {
   const navItems = [
     { id: 'overview', label: 'Overview', icon: HelpCircle },
     { id: 'matching', label: 'Match Engine', icon: Layers },
+    { id: 'threesensor', label: 'Three-Sensor Co-Reg', icon: Share2 },
     { id: 'results', label: 'Results & Visuals', icon: Activity },
     { id: 'benchmark', label: 'Evaluation & Benchmark', icon: BarChart2 }
   ]
@@ -24,8 +25,11 @@ export default function Header() {
             <span className="bg-sky-500/10 text-sky-400 text-xs font-semibold px-2.5 py-0.5 rounded-full border border-sky-500/20">
               ISRO CHANDRAYAAN-2
             </span>
+            <span className="bg-indigo-500/10 text-indigo-400 text-[10px] font-mono font-semibold px-2 py-0.5 rounded border border-indigo-500/20 hidden sm:inline-block">
+              DEMO SAFE
+            </span>
           </div>
-          <p className="text-xs text-slate-400">Multi-Modal, Sun-Angle & Scale-Invariant Engine</p>
+          <p className="text-xs text-slate-400">Multi-Modal, Sun-Angle & Scale-Invariant Engine (OHRC, TMC-2, IIRS)</p>
         </div>
       </div>
 
@@ -38,7 +42,7 @@ export default function Header() {
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              className={`flex items-center space-x-2 px-4 py-2 text-xs font-medium rounded-lg transition-all ${
+              className={`flex items-center space-x-2 px-3.5 py-2 text-xs font-medium rounded-lg transition-all cursor-pointer ${
                 isActive
                   ? 'bg-sky-500 text-white shadow-md shadow-sky-500/25 font-semibold'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
@@ -52,10 +56,10 @@ export default function Header() {
       </nav>
 
       {/* Instrument status badges */}
-      <div className="hidden lg:flex items-center space-x-2 text-xs">
-        <span className="px-2.5 py-1 rounded-md bg-slate-800 text-slate-300 font-mono border border-slate-700">OHRC 0.25m</span>
-        <span className="px-2.5 py-1 rounded-md bg-slate-800 text-slate-300 font-mono border border-slate-700">TMC-2 5m</span>
-        <span className="px-2.5 py-1 rounded-md bg-slate-800 text-slate-300 font-mono border border-slate-700">IIRS 256b</span>
+      <div className="hidden xl:flex items-center space-x-2 text-xs">
+        <span className="px-2.5 py-1 rounded-md bg-slate-800 text-sky-300 font-mono border border-slate-700">OHRC 0.28m</span>
+        <span className="px-2.5 py-1 rounded-md bg-slate-800 text-indigo-300 font-mono border border-slate-700">TMC-2 5.0m</span>
+        <span className="px-2.5 py-1 rounded-md bg-slate-800 text-amber-300 font-mono border border-slate-700">IIRS 86.5m</span>
       </div>
     </header>
   )
