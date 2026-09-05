@@ -2,10 +2,6 @@
 Evaluation and Ablation Benchmark API Endpoints (SIH26166).
 """
 
-"""
-Evaluation and Ablation Benchmark API Endpoints (SIH26166).
-"""
-
 import os
 import json
 from fastapi import APIRouter, HTTPException
