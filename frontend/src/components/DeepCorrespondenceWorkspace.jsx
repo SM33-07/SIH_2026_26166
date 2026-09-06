@@ -100,33 +100,39 @@ function DualImageCorrespondenceCanvas({
   )
 }
 
-export default function DeepCorrespondenceWorkspace({ activeResult }) {
+export default function DeepCorrespondenceWorkspace({ activeResult, sensorSpecs }) {
   const [pairView, setPairView] = useState('ohrc_tmc2')
   const [filter, setFilter] = useState('all')
 
   const images = activeResult?.images || {}
   const featureMatches = activeResult?.feature_matches
 
+  // Build labels dynamically from backend sensor specs
+  const specs = sensorSpecs?.sensors || {}
+  const ohrcLabel = specs.ohrc?.gsd_m_per_px != null ? `OHRC · ${specs.ohrc.gsd_m_per_px} m/px` : 'OHRC'
+  const tmc2Label = specs.tmc2?.gsd_m_per_px != null ? `TMC-2 · ${specs.tmc2.gsd_m_per_px} m/px` : 'TMC-2'
+  const iirsLabel = specs.iirs?.gsd_m_per_px != null ? `IIRS · ${specs.iirs.gsd_m_per_px} m/px` : 'IIRS'
+
   const pairs = {
     ohrc_tmc2: {
       img0: images.ohrc,
       img1: images.tmc2,
-      label0: 'OHRC · 0.28 m/px (Source)',
-      label1: 'TMC-2 · 5.0 m/px (Reference)',
+      label0: `${ohrcLabel} (Source)`,
+      label1: `${tmc2Label} (Reference)`,
       matches: featureMatches?.ohrc_tmc2 || [],
     },
     tmc2_iirs: {
       img0: images.tmc2,
       img1: images.iirs,
-      label0: 'TMC-2 · 5.0 m/px (Source)',
-      label1: 'IIRS · 86.5 m/px (Reference)',
+      label0: `${tmc2Label} (Source)`,
+      label1: `${iirsLabel} (Reference)`,
       matches: featureMatches?.tmc2_iirs || [],
     },
     ohrc_iirs: {
       img0: images.ohrc,
       img1: images.iirs,
-      label0: 'OHRC · 0.28 m/px (Source)',
-      label1: 'IIRS · 86.5 m/px (Reference)',
+      label0: `${ohrcLabel} (Source)`,
+      label1: `${iirsLabel} (Reference)`,
       matches: featureMatches?.ohrc_iirs || [],
     },
   }
@@ -136,9 +142,12 @@ export default function DeepCorrespondenceWorkspace({ activeResult }) {
   const inlierCount = currentPair.matches.filter((m) => m.inlier !== false).length
   const inlierRatio = totalMatches > 0 ? (inlierCount / totalMatches) * 100 : null
   const meanConf = featureMatches?.mean_confidence != null ? featureMatches.mean_confidence.toFixed(4) : '—'
-  const rmse = activeResult?.evidence?.geometric_verification?.reprojection_rmse != null
-    ? `${Number(activeResult.evidence.geometric_verification.reprojection_rmse).toFixed(3)} px`
-    : '0.84 px'
+
+  // RMSE: only show if backend actually provides it — never fabricate
+  const geomEvidence = activeResult?.evidence?.geometric_verification
+  const rmse = geomEvidence?.reprojection_rmse != null
+    ? `${Number(geomEvidence.reprojection_rmse).toFixed(3)} px`
+    : '—'
 
   return (
     <section id="correspondence-workspace" className="w-full my-8 space-y-4">
@@ -188,7 +197,7 @@ export default function DeepCorrespondenceWorkspace({ activeResult }) {
       ) : (
         <div className="h-64 border border-white/[0.1] bg-[#020305] flex flex-col items-center justify-center text-center p-6">
           <div className="text-xs font-mono text-neutral-500 uppercase tracking-widest">
-            NO CORRESPONDENCES AVAILABLE · MODEL VALIDATION PENDING
+            NO CORRESPONDENCES AVAILABLE
           </div>
           <div className="text-[10px] font-mono text-neutral-600 mt-1 max-w-md">
             Select an observation target from the 3D Moon or run Coordinate Search to load deep LoFTR correspondence lines.
@@ -196,7 +205,7 @@ export default function DeepCorrespondenceWorkspace({ activeResult }) {
         </div>
       )}
 
-      {/* Telemetry Measurement Strip (Not cards) */}
+      {/* Telemetry Measurement Strip */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 border-t border-b border-white/[0.08] py-3 bg-[#030406]/60 text-xs font-mono">
         <div>
           <span className="text-[9px] text-neutral-500 block uppercase">MATCH COUNT</span>
@@ -204,11 +213,11 @@ export default function DeepCorrespondenceWorkspace({ activeResult }) {
         </div>
         <div>
           <span className="text-[9px] text-neutral-500 block uppercase">INLIERS</span>
-          <span className="text-green-400 font-bold">{inlierCount > 0 ? inlierCount : '—'}</span>
+          <span className="text-green-400 font-bold">{totalMatches > 0 ? inlierCount : '—'}</span>
         </div>
         <div>
           <span className="text-[9px] text-neutral-500 block uppercase">INLIER RATIO</span>
-          <span className="text-amber-300 font-bold">{inlierRatio ? `${inlierRatio.toFixed(1)}%` : '—'}</span>
+          <span className="text-amber-300 font-bold">{inlierRatio != null ? `${inlierRatio.toFixed(1)}%` : '—'}</span>
         </div>
         <div>
           <span className="text-[9px] text-neutral-500 block uppercase">MEAN CONFIDENCE</span>
@@ -216,7 +225,7 @@ export default function DeepCorrespondenceWorkspace({ activeResult }) {
         </div>
         <div>
           <span className="text-[9px] text-neutral-500 block uppercase">REPROJECTION RMSE</span>
-          <span className="text-amber-400 font-bold">{totalMatches > 0 ? rmse : '—'}</span>
+          <span className="text-amber-400 font-bold">{rmse}</span>
         </div>
       </div>
 

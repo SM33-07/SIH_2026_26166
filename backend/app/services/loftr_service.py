@@ -125,6 +125,7 @@ def compute_cross_sensor_matches(
     tmc2: np.ndarray,
     iirs: np.ndarray,
     cache_key: Optional[str] = None,
+    force_recompute: bool = False,
 ) -> dict[str, Any]:
     """Compute cross-sensor matches between OHRC, TMC-2, and IIRS.
 
@@ -132,7 +133,7 @@ def compute_cross_sensor_matches(
         1. OHRC ↔ TMC-2
         2. TMC-2 ↔ IIRS
     """
-    if cache_key and cache_key in _CACHE:
+    if not force_recompute and cache_key and cache_key in _CACHE:
         return _CACHE[cache_key]
 
     if _LOFTR_MODEL is None:

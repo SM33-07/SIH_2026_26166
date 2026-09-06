@@ -1,43 +1,51 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 
 /**
  * GeometricVerification
  * Displays every metric actually returned by the backend:
- * - total matches
- * - inlier count
- * - inlier ratio
- * - mean confidence
- * - RMSE / reprojection error when available
- * - runtime when available
- * 
- * Strictly data-driven. Missing metrics display '—', never fabricated.
+ * - Pairwise geographic distance verification table (OHRC↔TMC-2, TMC-2↔IIRS, OHRC↔IIRS)
+ * - LoFTR dense correspondences count
+ * - Inlier count & Inlier ratio
+ * - Mean confidence
+ * - Reprojection RMSE (only if calculated by backend, never fabricated)
+ * - Estimated 3×3 projective homography matrix
+ * - Execution runtime and model provenance
  */
 
 function MetricCard({ label, value, unit = '', highlight, tooltip }) {
   const displayVal = value != null ? value : '—'
   return (
-    <div className="bg-lunar-bg border border-lunar-border p-3 flex flex-col justify-between">
-      <div className="flex items-center justify-between gap-1 mb-1.5">
-        <span className="tele-label">{label}</span>
-        {tooltip && <span className="text-[9px] text-slate-600 font-mono" title={tooltip}>ⓘ</span>}
+    <div className="bg-[#030405] border border-white/[0.06] p-3 flex flex-col justify-between">
+      <div className="flex items-center justify-between gap-1 mb-1">
+        <span className="text-[10px] font-mono uppercase tracking-wider text-neutral-400">{label}</span>
+        {tooltip && <span className="text-[9px] text-neutral-600 font-mono" title={tooltip}>ⓘ</span>}
       </div>
-      <div className={`font-mono text-base font-bold tracking-tight ${highlight || (value != null ? 'text-slate-200' : 'text-slate-600')}`}>
+      <div className={`font-mono text-base font-bold tracking-tight ${highlight || (value != null ? 'text-neutral-100' : 'text-neutral-600')}`}>
         {displayVal}
         {unit && value != null && (
-          <span className="text-slate-500 text-xs ml-1 font-normal font-sans">{unit}</span>
+          <span className="text-neutral-500 text-xs ml-1 font-normal font-sans">{unit}</span>
         )}
       </div>
     </div>
   )
 }
 
-export default function GeometricVerification({ geometricEvidence, featureMatches, provenance }) {
+export default function GeometricVerification({
+  geometricEvidence,
+  featureMatches,
+  provenance,
+  activeResult,
+  sensorSpecs,
+}) {
   const [showHomography, setShowHomography] = useState(false)
 
-  if (!geometricEvidence && !featureMatches) return null
+  // Extract from activeResult or direct props
+  const ge = geometricEvidence || activeResult?.evidence?.geometric_verification || activeResult?.geometric_verification || {}
+  const fm = featureMatches || activeResult?.feature_matches || {}
+  const prov = provenance || activeResult?.provenance
+  const pairwise = activeResult?.pairwise || {}
 
-  const ge = geometricEvidence || {}
-  const fm = featureMatches || {}
+  if (!geometricEvidence && !featureMatches && !activeResult) return null
 
   // 1. Total matches
   const totalMatches = fm.total_matches != null
@@ -69,30 +77,42 @@ export default function GeometricVerification({ geometricEvidence, featureMatche
   // 6. Runtime when available
   const runtime = ge.runtime_ms != null
     ? `${Number(ge.runtime_ms).toFixed(1)} ms`
-    : (provenance?.runtime_ms != null ? `${provenance.runtime_ms} ms` : null)
+    : (prov?.runtime_ms != null ? `${prov.runtime_ms} ms` : null)
 
   // Status
   const status = ge.status || (inlierCount != null && inlierCount >= 4 ? 'ok' : null)
   const homography = Array.isArray(ge.homography) ? ge.homography : null
 
+  const pairwisePairs = [
+    { key: 'ohrc_tmc2', label: 'OHRC ↔ TMC-2', role: 'High-Res to Intermediate Bridge', data: pairwise.ohrc_tmc2 },
+    { key: 'tmc2_iirs', label: 'TMC-2 ↔ IIRS', role: 'Intermediate to Hyperspectral Context', data: pairwise.tmc2_iirs },
+    { key: 'ohrc_iirs', label: 'OHRC ↔ IIRS', role: 'Direct End-to-End Baseline', data: pairwise.ohrc_iirs },
+  ]
+
+  const hasPairwise = pairwisePairs.some((p) => p.data != null)
+
   return (
-    <div className="border border-lunar-border bg-lunar-card p-4 space-y-3">
+    <section className="tech-card p-5 space-y-4">
       {/* Section Header */}
-      <div className="flex items-center justify-between border-b border-lunar-border pb-2.5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/[0.08] pb-3">
         <div className="flex items-center gap-2">
-          <span className="tele-label">Registration & Geometric Verification</span>
-          <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest">
-            (RANSAC / DLT Homography)
+          <span className="w-1.5 h-1.5 bg-amber-400 rounded-full inline-block" />
+          <span className="text-xs font-mono font-bold uppercase tracking-wider text-neutral-200">
+            Geometric Verification &amp; Spatial Alignment
+          </span>
+          <span className="text-[9px] font-mono text-neutral-500 uppercase tracking-widest hidden md:inline">
+            (RANSAC / MAGSAC++ Projective Homography)
           </span>
         </div>
+
         {status && (
           <span
             className={`text-[9px] font-mono border px-2 py-0.5 uppercase tracking-wider font-bold ${
               status === 'ok'
-                ? 'border-green-700 text-green-400 bg-green-950/30'
+                ? 'border-green-800 text-green-400 bg-green-950/30'
                 : status === 'insufficient_points'
                 ? 'border-amber-700 text-amber-400 bg-amber-950/30'
-                : 'border-lunar-border text-slate-500'
+                : 'border-white/[0.1] text-neutral-500'
             }`}
           >
             STATUS: {status.replace(/_/g, ' ')}
@@ -100,7 +120,66 @@ export default function GeometricVerification({ geometricEvidence, featureMatche
         )}
       </div>
 
-      {/* Primary Metrics Grid (all 6 returned metrics) */}
+      {/* Pairwise Distance Verification Table */}
+      {hasPairwise && (
+        <div className="space-y-2">
+          <div className="text-[10px] font-mono text-neutral-400 uppercase tracking-widest font-bold">
+            Pairwise Sensor Consistency Matrix
+          </div>
+          <div className="overflow-x-auto border border-white/[0.06]">
+            <table className="w-full text-left font-mono text-xs">
+              <thead className="bg-[#030405] text-[10px] text-neutral-500 uppercase tracking-wider border-b border-white/[0.06]">
+                <tr>
+                  <th className="px-4 py-2">Sensor Pair</th>
+                  <th className="px-4 py-2">Pair Role</th>
+                  <th className="px-4 py-2">Angular Distance</th>
+                  <th className="px-4 py-2">Surface Distance</th>
+                  <th className="px-4 py-2">Physical Constraint</th>
+                  <th className="px-4 py-2 text-right">Verification</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/[0.04] bg-[#07080a]">
+                {pairwisePairs.map(({ key, label, role, data }) => (
+                  <tr key={key} className="hover:bg-white/[0.02] transition-colors">
+                    <td className="px-4 py-2.5 font-bold text-neutral-200">{label}</td>
+                    <td className="px-4 py-2.5 text-[10px] text-neutral-500">{role}</td>
+                    <td className="px-4 py-2.5 text-neutral-300">
+                      {data?.distance_deg != null ? `${Number(data.distance_deg).toFixed(6)}°` : '—'}
+                    </td>
+                    <td className="px-4 py-2.5 text-neutral-300">
+                      {data?.distance_m != null
+                        ? data.distance_m < 1000
+                          ? `${Number(data.distance_m).toFixed(1)} m`
+                          : `${(data.distance_m / 1000).toFixed(2)} km`
+                        : '—'}
+                    </td>
+                    <td className="px-4 py-2.5 text-[10px] text-neutral-500">
+                      ≤ 0.020° (≈ 606 m)
+                    </td>
+                    <td className="px-4 py-2.5 text-right">
+                      {data?.status ? (
+                        <span
+                          className={`inline-block text-[9px] px-2 py-0.5 border font-bold ${
+                            data.status === 'PASS'
+                              ? 'border-green-800 text-green-400 bg-green-950/40'
+                              : 'border-red-800 text-red-400 bg-red-950/40'
+                          }`}
+                        >
+                          {data.status}
+                        </span>
+                      ) : (
+                        <span className="text-neutral-600">—</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Primary Metrics Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
         <MetricCard
           label="Total Matches"
@@ -141,19 +220,19 @@ export default function GeometricVerification({ geometricEvidence, featureMatche
 
       {/* Homography 3x3 Matrix toggle if returned */}
       {homography && (
-        <div className="pt-2 border-t border-lunar-border/40">
+        <div className="pt-2 border-t border-white/[0.06]">
           <button
             onClick={() => setShowHomography(!showHomography)}
-            className="text-[10px] font-mono text-slate-500 hover:text-slate-300 uppercase tracking-wider flex items-center gap-1.5 transition-colors"
+            className="text-[10px] font-mono text-neutral-400 hover:text-white uppercase tracking-wider flex items-center gap-1.5 transition-colors"
           >
             <span>{showHomography ? '▾ Hide' : '▸ Show'} Homography Matrix (3×3)</span>
           </button>
           {showHomography && (
-            <div className="mt-2 p-2 bg-lunar-bg border border-lunar-border font-mono text-[10px] text-slate-400 space-y-1">
+            <div className="mt-2 p-3 bg-[#030405] border border-white/[0.06] font-mono text-[10px] text-neutral-400 space-y-1">
               {homography.map((row, rIdx) => (
                 <div key={rIdx} className="flex gap-4">
                   {row.map((val, cIdx) => (
-                    <span key={cIdx} className="w-24 text-right text-slate-300">
+                    <span key={cIdx} className="w-24 text-right text-neutral-200">
                       {typeof val === 'number' ? val.toFixed(6) : String(val)}
                     </span>
                   ))}
@@ -165,19 +244,19 @@ export default function GeometricVerification({ geometricEvidence, featureMatche
       )}
 
       {/* Provenance Footer */}
-      {provenance && (
-        <div className="pt-2 border-t border-lunar-border/40 flex flex-wrap items-center gap-x-6 gap-y-1 text-[9px] font-mono text-slate-600">
-          {provenance.model && (
-            <div>Model: <span className="text-slate-400">{provenance.model}</span></div>
+      {prov && (
+        <div className="pt-2 border-t border-white/[0.06] flex flex-wrap items-center gap-x-6 gap-y-1 text-[9px] font-mono text-neutral-500">
+          {prov.model && (
+            <div>Model: <span className="text-neutral-300">{prov.model}</span></div>
           )}
-          {provenance.pipeline && (
-            <div>Pipeline: <span className="text-slate-400">{provenance.pipeline}</span></div>
+          {prov.pipeline && (
+            <div>Pipeline: <span className="text-neutral-300">{prov.pipeline}</span></div>
           )}
-          {provenance.architecture && (
-            <div>Arch: <span className="text-slate-400">{provenance.architecture}</span></div>
+          {prov.architecture && (
+            <div>Arch: <span className="text-neutral-300">{prov.architecture}</span></div>
           )}
         </div>
       )}
-    </div>
+    </section>
   )
 }

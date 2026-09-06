@@ -1,12 +1,9 @@
 /**
- * Target Presets specified by the SIH26166 Blueprint:
- * Pair 2267: 60.989400° N, -4.677456° E (355.322544° lon360)
- * Pair 3463: 60.839792° N, -4.695181° E (355.304819° lon360)
- * Pair 5353: 60.603614° N, -4.695332° E (355.304668° lon360)
- * Pair 7674: 60.217858° N, -4.695636° E (355.304364° lon360)
+ * Benchmark Reference Examples specified by the SIH26166 Blueprint:
+ * These are static reference calibration targets for offline validation and documentation.
+ * They are NOT used as fallback coordinates for live user searches or runtime inference.
  */
-
-export const TARGET_PRESETS = [
+export const REFERENCE_PRESET_EXAMPLES = [
   {
     id: '2267',
     label: 'Pair 2267',
@@ -48,6 +45,8 @@ export const TARGET_PRESETS = [
     description: 'Challenging sun-angle disparity tested with physical Lunar-Lambertian normalization.',
   },
 ]
+
+export const TARGET_PRESETS = REFERENCE_PRESET_EXAMPLES
 
 export const SENSOR_SPECS_FALLBACK = {
   sensors: {

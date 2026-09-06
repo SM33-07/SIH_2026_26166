@@ -14,29 +14,57 @@ const BASE = `${API_ORIGIN}/api/v1`
 // ---------------------------------------------------------------------------
 
 async function request(path, options = {}) {
-  const url = `${BASE}${path}`
-  const res = await fetch(url, { ...options })
-  if (!res.ok) {
-    let detail = `HTTP ${res.status}`
-    try {
-      const body = await res.json()
-      detail = body.detail || JSON.stringify(body)
-    } catch {
-      detail = await res.text().catch(() => detail)
+  const { timeout = 15000, signal, ...fetchOpts } = options
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), timeout)
+
+  // Link external abort signal if provided
+  if (signal) {
+    if (signal.aborted) {
+      clearTimeout(timeoutId)
+      const err = new Error('Request aborted')
+      err.name = 'AbortError'
+      throw err
     }
-    const err = new Error(detail)
-    err.status = res.status
-    err.isApiError = true
+    signal.addEventListener('abort', () => controller.abort(), { once: true })
+  }
+
+  const url = `${BASE}${path}`
+  try {
+    const res = await fetch(url, { ...fetchOpts, signal: controller.signal })
+    clearTimeout(timeoutId)
+
+    if (!res.ok) {
+      let detail = `HTTP ${res.status}`
+      try {
+        const body = await res.json()
+        detail = body.detail || JSON.stringify(body)
+      } catch {
+        detail = await res.text().catch(() => detail)
+      }
+      const err = new Error(detail)
+      err.status = res.status
+      err.isApiError = true
+      throw err
+    }
+    return res.json()
+  } catch (err) {
+    clearTimeout(timeoutId)
+    if (err.name === 'AbortError') {
+      const abortErr = new Error(`Request timed out or cancelled: ${path}`)
+      abortErr.isTimeout = true
+      throw abortErr
+    }
     throw err
   }
-  return res.json()
 }
 
-function postJson(path, body) {
+function postJson(path, body, options = {}) {
   return request(path, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
+    ...options,
   })
 }
 
@@ -81,9 +109,10 @@ export function getCommonPoint(id) {
  * POST /api/v1/coordinate/search
  * @param {number} latitude
  * @param {number} longitude
+ * @param {object} [options]
  */
-export function searchCoordinate(latitude, longitude) {
-  return postJson('/coordinate/search', { latitude, longitude })
+export function searchCoordinate(latitude, longitude, options = {}) {
+  return postJson('/coordinate/search', { latitude, longitude }, options)
 }
 
 // ---------------------------------------------------------------------------
@@ -96,17 +125,21 @@ export function searchCoordinate(latitude, longitude) {
  * @param {number} [opts.limit=20]
  * @param {string} [opts.case_type]  'SAME' | 'DIFFERENT'
  */
-export function listCases({ limit = 20, case_type } = {}) {
+export function listCases({ limit = 20, case_type, signal } = {}) {
   const params = new URLSearchParams({ limit: String(limit) })
   if (case_type) params.set('case_type', case_type)
-  return request(`/cases?${params}`)
+  return request(`/cases?${params}`, { signal })
 }
 
 /**
  * GET /api/v1/demo/{judge_id}
+ * @param {string} judgeId
+ * @param {boolean} [forceLive=true]
+ * @param {object} [options]
  */
-export function loadDemo(judgeId) {
-  return request(`/demo/${encodeURIComponent(judgeId.trim().toUpperCase())}`)
+export function loadDemo(judgeId, forceLive = true, options = {}) {
+  const params = forceLive ? '?force_live=true' : ''
+  return request(`/demo/${encodeURIComponent(judgeId.trim().toUpperCase())}${params}`, options)
 }
 
 // ---------------------------------------------------------------------------

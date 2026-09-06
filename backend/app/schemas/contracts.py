@@ -68,6 +68,11 @@ class DemoResponse(BaseModel):
     images: dict[str, str]
     pairwise: dict[str, Any]
     feature_matches: Optional[dict[str, Any]] = None
+    evidence: Optional[dict[str, Any]] = None
+    reference_label: Optional[str] = None
+    inference_mode: str = "live"
+    cache_used: bool = False
+    runtime_ms: Optional[float] = None
     note: str
 
 

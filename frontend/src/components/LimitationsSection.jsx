@@ -1,19 +1,13 @@
-import React, { useEffect, useState } from 'react'
-import { getProvenance } from '../api/client'
+import React from 'react'
+import useMatchStore from '../store/matchStore'
 
 export default function LimitationsSection() {
-  const [provenance, setProvenance] = useState(null)
-
-  useEffect(() => {
-    getProvenance()
-      .then((data) => setProvenance(data))
-      .catch(() => {})
-  }, [])
+  const { provenance } = useMatchStore()
 
   const limits = [
     {
       key: 'IIRS Spatial Resolution',
-      body: 'Current proxy products operate at ~80 m/px. Precise sub-meter boresight registration relies on TMC-2 intermediate triangulation to bridge the 308.9× cumulative scale gap.',
+      body: 'Current proxy products operate at coarse resolution. Precise sub-meter boresight registration relies on TMC-2 intermediate triangulation to bridge the cumulative scale gap.',
     },
     {
       key: 'Polar Shadowing',
@@ -29,11 +23,13 @@ export default function LimitationsSection() {
     },
   ]
 
+  // Artifacts from backend provenance or '—' when not available
+  const model = provenance?.model || {}
   const artifacts = [
-    { label: 'TMC-2 LoFTR Matcher', val: 'tmc2_loftr_available.pt · 11.56M params' },
-    { label: 'OHRC Embedder', val: 'ResNet-18 · 256-dim feature vector' },
-    { label: 'Observation Catalog', val: '1,514 verified points (KDTree index)' },
-    { label: 'Same-Zone Threshold', val: '0.020° ≈ 606 m surface radius' },
+    { label: 'TMC-2 LoFTR Matcher', val: model.matcher_file ?? '—' },
+    { label: 'OHRC Embedder', val: model.embedder_arch ?? '—' },
+    { label: 'Observation Catalog', val: model.catalog_size ? `${model.catalog_size.toLocaleString()} verified points` : '—' },
+    { label: 'Same-Zone Threshold', val: model.same_zone_threshold_deg ? `${model.same_zone_threshold_deg}° ≈ ${Math.round(model.same_zone_threshold_deg * 30300)} m` : '—' },
   ]
 
   return (

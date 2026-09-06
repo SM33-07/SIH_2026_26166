@@ -4,44 +4,50 @@ import { matchThreeImages } from '../api/client'
 const MAX_MB = 20
 const MAX_BYTES = MAX_MB * 1024 * 1024
 
-const SENSORS = [
-  {
-    key: 'iirs',
-    label: 'IIRS',
-    sub: 'Hyperspectral · 86.5 m/px',
-    field: 'iirs_image',
-    accent: '#ef4444',
-    accentBg: 'rgba(239,68,68,0.07)',
-    border: 'border-red-700/40',
-    borderHover: 'hover:border-red-500/70',
-    borderActive: 'border-red-500',
-    textActive: 'text-red-400',
-  },
-  {
-    key: 'tmc2',
-    label: 'TMC-2',
-    sub: 'Optical context · 5 m/px',
-    field: 'tmc2_image',
-    accent: '#f59e0b',
-    accentBg: 'rgba(245,158,11,0.07)',
-    border: 'border-amber-700/40',
-    borderHover: 'hover:border-amber-500/70',
-    borderActive: 'border-amber-500',
-    textActive: 'text-amber-400',
-  },
-  {
-    key: 'ohrc',
-    label: 'OHRC',
-    sub: 'High-resolution · 0.28 m/px',
-    field: 'ohrc_image',
-    accent: '#e2e8f0',
-    accentBg: 'rgba(226,232,240,0.05)',
-    border: 'border-slate-600/40',
-    borderHover: 'hover:border-slate-400/70',
-    borderActive: 'border-slate-300',
-    textActive: 'text-slate-200',
-  },
-]
+/**
+ * Build sensor metadata from backend sensorSpecs or fall back to '—'.
+ */
+function buildSensorMeta(sensorSpecs) {
+  const specs = sensorSpecs?.sensors || {}
+  return [
+    {
+      key: 'iirs',
+      label: 'IIRS',
+      sub: specs.iirs?.gsd_m_per_px != null ? `Hyperspectral · ${specs.iirs.gsd_m_per_px} m/px` : 'Hyperspectral',
+      field: 'iirs_image',
+      accent: '#ef4444',
+      accentBg: 'rgba(239,68,68,0.07)',
+      border: 'border-red-700/40',
+      borderHover: 'hover:border-red-500/70',
+      borderActive: 'border-red-500',
+      textActive: 'text-red-400',
+    },
+    {
+      key: 'tmc2',
+      label: 'TMC-2',
+      sub: specs.tmc2?.gsd_m_per_px != null ? `Optical context · ${specs.tmc2.gsd_m_per_px} m/px` : 'Optical context',
+      field: 'tmc2_image',
+      accent: '#f59e0b',
+      accentBg: 'rgba(245,158,11,0.07)',
+      border: 'border-amber-700/40',
+      borderHover: 'hover:border-amber-500/70',
+      borderActive: 'border-amber-500',
+      textActive: 'text-amber-400',
+    },
+    {
+      key: 'ohrc',
+      label: 'OHRC',
+      sub: specs.ohrc?.gsd_m_per_px != null ? `High-resolution · ${specs.ohrc.gsd_m_per_px} m/px` : 'High-resolution',
+      field: 'ohrc_image',
+      accent: '#e2e8f0',
+      accentBg: 'rgba(226,232,240,0.05)',
+      border: 'border-slate-600/40',
+      borderHover: 'hover:border-slate-400/70',
+      borderActive: 'border-slate-300',
+      textActive: 'text-slate-200',
+    },
+  ]
+}
 
 function DropSlot({ sensor, file, onFile, onRemove }) {
   const inputRef  = useRef(null)
@@ -128,12 +134,16 @@ function DropSlot({ sensor, file, onFile, onRemove }) {
  * On successful backend inference, calls onResult with:
  *   { result (full API response), point: { latitude, longitude_360, label } }
  * so App.jsx can pass the location to CinematicMoonHero as matchResultPoint.
+ *
+ * sensorSpecs: backend sensor characteristics for dynamic GSD labels.
  */
-export default function InlineImageUpload({ onResult }) {
+export default function InlineImageUpload({ onResult, sensorSpecs }) {
   const [files,   setFiles]   = useState({ iirs: null, tmc2: null, ohrc: null })
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState(null)
   const [done,    setDone]    = useState(false)
+
+  const sensors = buildSensorMeta(sensorSpecs)
 
   const allReady    = files.iirs && files.tmc2 && files.ohrc
   const anyOversized = Object.values(files).some((f) => f && f.size > MAX_BYTES)
@@ -150,14 +160,12 @@ export default function InlineImageUpload({ onResult }) {
       const result = await matchThreeImages(files.ohrc, files.tmc2, files.iirs)
       setDone(true)
 
-      // Extract location from backend response
-      // Common-points returns: result.location.latitude / longitude_360
-      // or result.matched_point.latitude / .longitude_360
+      // Extract location from backend response — NO fallback coordinates
       const loc = result?.location ?? result?.matched_point ?? result?.best_match ?? null
       const point = loc
         ? {
-            latitude:      loc.latitude      ?? loc.lat ?? 0,
-            longitude_360: loc.longitude_360 ?? loc.lon_360 ?? loc.longitude ?? 0,
+            latitude:      loc.latitude      ?? loc.lat ?? null,
+            longitude_360: loc.longitude_360 ?? loc.lon_360 ?? loc.longitude ?? null,
             label:         loc.region_name   ?? loc.id ?? `MATCH #${result?.judge_id ?? '?'}`,
           }
         : null
@@ -193,7 +201,7 @@ export default function InlineImageUpload({ onResult }) {
       {/* Upload slots */}
       <form onSubmit={handleSubmit} className="px-5 py-4 space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {SENSORS.map((s) => (
+          {sensors.map((s) => (
             <DropSlot
               key={s.key}
               sensor={s}

@@ -84,6 +84,51 @@ const useMatchStore = create((set, get) => ({
   // ─── Export modal ────────────────────────────────────────────────────────────
   exportModalOpen: false,
   setExportModalOpen: (v) => set({ exportModalOpen: v }),
+
+  // ─── Cross-component sensor highlight ───────────────────────────────────────
+  highlightedSensor: null,         // 'ohrc' | 'tmc2' | 'iirs' | null
+  setHighlightedSensor: (s) => set({ highlightedSensor: s }),
+
+  // ─── Network & Cancellation Management ────────────────────────────────────
+  activeAbortController: null,
+  getAbortSignal: () => {
+    const current = get().activeAbortController
+    if (current) {
+      try {
+        current.abort()
+      } catch (_) {}
+    }
+    const nextController = new AbortController()
+    set({ activeAbortController: nextController })
+    return nextController.signal
+  },
+  cancelActiveRequest: () => {
+    const current = get().activeAbortController
+    if (current) {
+      try {
+        current.abort()
+      } catch (_) {}
+      set({ activeAbortController: null, loading: false })
+    }
+  },
+
+  // ─── Managed Blob URLs for memory leak prevention ──────────────────────────
+  managedBlobUrls: [],
+  registerBlobUrl: (url) => {
+    if (url && typeof url === 'string' && url.startsWith('blob:')) {
+      set((state) => ({ managedBlobUrls: [...state.managedBlobUrls, url] }))
+    }
+  },
+  cleanupBlobUrls: () => {
+    const urls = get().managedBlobUrls
+    urls.forEach((u) => {
+      try {
+        URL.revokeObjectURL(u)
+      } catch (_) {}
+    })
+    set({ managedBlobUrls: [] })
+  },
 }))
 
 export default useMatchStore
+
