@@ -1,77 +1,108 @@
-import React, { useState, useEffect } from 'react'
+import { useEffect } from 'react'
+import useMatchStore from '../store/matchStore'
+import { checkHealth } from '../api/client'
+
+const MODE_DOT = {
+  true: 'bg-green-400',
+  false: 'bg-red-400',
+}
 
 export default function Header() {
-  const [activeSection, setActiveSection] = useState('hero')
-
-  const navItems = [
-    { id: 'hero', label: 'OVERVIEW' },
-    { id: 'region', label: 'REGION' },
-    { id: 'correspondence', label: 'CORRESPONDENCE' },
-    { id: 'integration', label: 'INTEGRATION' },
-    { id: 'performance', label: 'PERFORMANCE' },
-    { id: 'methodology', label: 'METHOD' },
-    { id: 'limitations', label: 'LIMITATIONS' }
-  ]
+  const { health, healthError, setHealth, setHealthError } = useMatchStore()
 
   useEffect(() => {
-    const handleScroll = () => {
-      const sections = navItems.map((item) => document.getElementById(item.id))
-      const scrollPosition = window.scrollY + 180
-
-      for (let i = sections.length - 1; i >= 0; i--) {
-        const section = sections[i]
-        if (section && section.offsetTop <= scrollPosition) {
-          setActiveSection(navItems[i].id)
-          break
-        }
-      }
-    }
-
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
+    let mounted = true
+    checkHealth()
+      .then((h) => mounted && setHealth(h))
+      .catch(() => mounted && setHealthError())
+    // Poll every 60 seconds
+    const id = setInterval(() => {
+      checkHealth()
+        .then((h) => mounted && setHealth(h))
+        .catch(() => mounted && setHealthError())
+    }, 60_000)
+    return () => { mounted = false; clearInterval(id) }
   }, [])
 
-  const scrollToSection = (id) => {
-    const element = document.getElementById(id)
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' })
-    }
-  }
+  const online = health?.status === 'ok'
+  const device = health?.device ?? '—'
+  const models = health?.models_loaded ?? false
+  const indexes = health?.indexes_loaded ?? false
 
   return (
-    <header className="sticky top-0 z-50 bg-[#080808]/95 backdrop-blur-md border-b border-[#252525] px-6 py-3 font-mono text-xs text-[#A0A0A0]">
-      <div className="max-w-7xl mx-auto flex items-center justify-between">
+    <header className="w-full bg-lunar-card border-b border-lunar-border relative z-40">
+      {/* Top bar */}
+      <div className="px-5 py-3 flex items-center justify-between gap-4">
+        {/* Identity */}
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center justify-center w-8 h-8 border border-lunar-accent/50 bg-lunar-accent/10 shrink-0">
+            <svg viewBox="0 0 24 24" className="w-4 h-4 text-lunar-accent" fill="currentColor">
+              <path d="M12 2a10 10 0 1 0 10 10A10.011 10.011 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8.009 8.009 0 0 1-8 8zm-3-8a3 3 0 1 0 3-3 3.003 3.003 0 0 0-3 3z"/>
+            </svg>
+          </div>
+          <div className="min-w-0">
+            <div className="text-slate-100 font-bold text-sm tracking-wider uppercase truncate">
+              Lunar Correspondence Engine
+            </div>
+            <div className="text-slate-500 text-[10px] font-mono tracking-widest uppercase">
+              SIH26166 · Chandrayaan-2 Multi-Sensor Registration
+            </div>
+          </div>
+        </div>
 
-        {/* Brand & ISRO / Chandrayaan-2 Tag */}
-        <div className="flex items-center space-x-3 cursor-pointer" onClick={() => scrollToSection('hero')}>
-          <div className="w-2.5 h-2.5 bg-amber-500 rounded-none animate-pulse" />
-          <span className="font-bold text-[#F2F2F2] tracking-wider uppercase text-sm">
-            CHANDRAYAAN-2 <span className="text-[#5F5F5F] font-normal">| SIH26166</span>
+        {/* System status telemetry */}
+        <div className="hidden sm:flex items-center gap-1 text-[10px] font-mono tracking-wider uppercase shrink-0">
+          {healthError ? (
+            <span className="flex items-center gap-1.5 text-red-400 border border-red-800 bg-red-950/50 px-2.5 py-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-400 inline-block" />
+              BACKEND UNAVAILABLE
+            </span>
+          ) : health == null ? (
+            <span className="flex items-center gap-1.5 text-slate-500 border border-slate-800 px-2.5 py-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-500 skeleton inline-block" />
+              CONNECTING…
+            </span>
+          ) : (
+            <div className="flex items-center gap-3 border border-lunar-border px-3 py-1.5 bg-lunar-surface">
+              <span className={`flex items-center gap-1.5 ${online ? 'text-green-400' : 'text-red-400'}`}>
+                <span className={`w-1.5 h-1.5 rounded-full inline-block ${online ? 'bg-green-400' : 'bg-red-400'}`} />
+                {online ? 'ONLINE' : 'DEGRADED'}
+              </span>
+              <span className="text-lunar-border">|</span>
+              <span className={`flex items-center gap-1 ${models ? 'text-indigo-300' : 'text-amber-400'}`}>
+                <span className={`w-1.5 h-1.5 rounded-full inline-block ${models ? 'bg-indigo-400' : 'bg-amber-400'}`} />
+                MODEL {models ? 'READY' : 'LOADING'}
+              </span>
+              <span className="text-lunar-border">|</span>
+              <span className="text-slate-400">DEV: <span className="text-slate-200">{device.toUpperCase()}</span></span>
+              {health?.common_points && (
+                <>
+                  <span className="text-lunar-border">|</span>
+                  <span className="text-slate-400">
+                    PTS: <span className="text-slate-200">{health.common_points.toLocaleString()}</span>
+                  </span>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Sensor tag row */}
+      <div className="border-t border-lunar-border/40 px-5 py-1.5 flex items-center gap-3">
+        <span className="text-[9px] font-mono tracking-widest text-slate-600 uppercase">SENSORS</span>
+        {[
+          { name: 'IIRS', color: 'text-sensor-iirs border-sensor-iirs/40 bg-sensor-iirs/5' },
+          { name: 'TMC-2', color: 'text-sensor-tmc2 border-sensor-tmc2/40 bg-sensor-tmc2/5' },
+          { name: 'OHRC', color: 'text-sensor-ohrc border-sensor-ohrc/40 bg-sensor-ohrc/5' },
+        ].map(({ name, color }) => (
+          <span key={name} className={`text-[10px] font-mono border px-2 py-0.5 ${color}`}>
+            {name}
           </span>
-        </div>
-
-        {/* Navigation Item Links */}
-        <nav className="hidden md:flex items-center space-x-6">
-          {navItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => scrollToSection(item.id)}
-              className={`transition-colors uppercase tracking-wider py-1 border-b-2 cursor-pointer ${
-                activeSection === item.id
-                  ? 'text-amber-500 border-amber-500 font-bold'
-                  : 'text-[#A0A0A0] hover:text-[#F2F2F2] border-transparent'
-              }`}
-            >
-              {item.label}
-            </button>
-          ))}
-        </nav>
-
-        {/* System Status Pill */}
-        <div className="flex items-center space-x-2 border border-[#252525] bg-[#0D0D0D] px-3 py-1 text-[11px]">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-          <span className="text-[#F2F2F2] font-semibold">MISSION CONTROL ONLINE</span>
-        </div>
+        ))}
+        <span className="text-slate-600 text-[9px] font-mono uppercase tracking-widest ml-auto">
+          LOCATE · MATCH · VERIFY · DECIDE
+        </span>
       </div>
     </header>
   )
