@@ -1,0 +1,15 @@
+{
+  "tmc2_total_geographic_points": 339735,
+  "three_sensor_common_points": 1514,
+  "three_sensor_common_percentage": 0.4456414558405816,
+  "judge_points": 500,
+  "common_radius_degree": 0.02,
+  "best_consistency_score": 0.9806192001011447,
+  "median_consistency_score": 0.8997266478147222,
+  "median_max_sensor_separation_degree": 0.0025094399906984578,
+  "master_file": "/kaggle/working/TMC2_OHRC_FINAL/working_data/common_points/master_three_sensor_common_points.csv",
+  "judge_file": "/kaggle/working/TMC2_OHRC_FINAL/working_data/common_points/judge_three_sensor_points.csv",
+  "tmc_index": "/kaggle/working/TMC2_OHRC_FINAL/working_data/common_points/tmc2_to_common_points.csv",
+  "ohrc_index": "/kaggle/working/TMC2_OHRC_FINAL/working_data/common_points/ohrc_to_common_points.csv",
+  "iirs_index": "/kaggle/working/TMC2_OHRC_FINAL/working_data/common_points/iirs_to_common_points.csv"
+}

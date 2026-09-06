@@ -1,43 +1,43 @@
-"""
-Provenance and Limitations API Endpoints (SIH26166).
-Exposes explicit scientific states, caveats, approximate geometry notes, and project limitations.
-"""
+from __future__ import annotations
 
-import os
-import json
-from fastapi import APIRouter, HTTPException
-from backend.app.config import settings
-from backend.app.schemas.contracts import ProvenanceResponseSchema
+from typing import Any
+from fastapi import APIRouter
 
-router = APIRouter()
+from app.config import settings
 
-def _load_provenance_data():
-    provenance_file = os.path.join(settings.DEMO_DIR, "provenance.json")
-    if not os.path.exists(provenance_file):
-        provenance_file = os.path.join(settings.BASE_DIR, "backend", "data", "demo", "provenance.json")
-    if not os.path.exists(provenance_file):
-        raise HTTPException(status_code=404, detail="Provenance configuration not found.")
-    with open(provenance_file, "r", encoding="utf-8") as f:
-        return json.load(f)
+router = APIRouter(tags=["Provenance"])
 
-@router.get("/api/provenance", response_model=ProvenanceResponseSchema)
-def get_provenance():
-    """
-    Returns explicit scientific terminology definitions:
-    - REAL SPATIAL SCENE
-    - SYNTHETIC BENCHMARK
-    - GEOGRAPHICALLY ASSOCIATED
-    - APPROXIMATE GEOMETRY
-    - MODEL VALIDATION PENDING
-    - VALIDATED BENCHMARK
-    as well as known scientific limitations.
-    """
-    return _load_provenance_data()
 
-@router.get("/api/limitations")
-def get_limitations():
-    """
-    Returns the project's scientific limitations.
-    """
-    data = _load_provenance_data()
-    return {"limitations": data.get("limitations", [])}
+@router.get("/provenance/models")
+def get_model_provenance() -> dict[str, Any]:
+    """Return model provenance, parameter counts, and checkpoint metadata."""
+    return {
+        "models": {
+            "tmc2": {
+                "checkpoint": settings.BUNDLED_TMC2_CHECKPOINT,
+                "architecture": "LoFTR (Dense Attention Transformer)",
+                "parameters": settings.LOFTR_NUM_PARAMETERS,
+                "coarse_layers": settings.LOFTR_COARSE_RES,
+                "fine_layers": settings.LOFTR_FINE_RES,
+                "training_epoch": 3,
+                "training_global_step": 5625,
+                "historical_step5d_included": False,
+            },
+            "ohrc": {
+                "checkpoint": settings.BUNDLED_OHRC_CHECKPOINT,
+                "architecture": "ResNet-18 Grayscale Feature Embedder",
+                "output_dimensions": 256,
+                "normalization": "L2 unit sphere",
+            },
+            "iirs": {
+                "coarse_checkpoint": settings.BUNDLED_IIRS_COARSE,
+                "fine_checkpoint": settings.BUNDLED_IIRS_FINE,
+                "runtime_service": "Approximate product-level geometry interpolation",
+            },
+        },
+        "geographic_catalog": {
+            "common_points": 1514,
+            "judge_demonstration_points": 500,
+            "same_zone_threshold_deg": settings.SAME_RADIUS_DEG,
+        },
+    }

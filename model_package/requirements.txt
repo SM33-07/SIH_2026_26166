@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+python-multipart
+pydantic
+numpy
+pandas
+scipy
+torch
+torchvision
+kornia==0.8.3
+h5py
+Pillow
+python-dotenv

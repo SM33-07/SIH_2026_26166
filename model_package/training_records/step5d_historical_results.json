@@ -1,0 +1,19 @@
+{
+  "status": "HISTORICAL_RESULT_ONLY",
+  "checkpoint_available_in_current_session": false,
+  "training": {
+    "epochs": 3,
+    "samples_per_epoch": 30000,
+    "batch_size": 16,
+    "learning_rate": 1e-06,
+    "weight_decay": 0.0001
+  },
+  "recorded_validation_result": {
+    "loss": 0.157929,
+    "coarse_top1_accuracy_percent": 99.7583,
+    "mean_confidence": 0.858561,
+    "mean_displacement_cells": 0.0024168,
+    "exact_pair_accuracy_percent": 95.8955
+  },
+  "important_note": "The exact Step5D checkpoint that produced the recorded validation result is not present in the current Kaggle filesystem. These numbers must therefore be treated as historical results from the earlier training session, not reproduced from the bundled checkpoint."
+}

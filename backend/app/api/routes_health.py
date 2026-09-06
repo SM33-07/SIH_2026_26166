@@ -1,59 +1,49 @@
-"""
-Health Check and Instrument Specification Endpoints (SIH26166).
-"""
+from __future__ import annotations
 
-from fastapi import APIRouter
-from backend.app.config import settings
+from fastapi import APIRouter, status
+from fastapi.responses import JSONResponse
 
-router = APIRouter()
+from app.config import settings
+from app.schemas.contracts import HealthResponse
+from app.services import common_point_service, loftr_service
 
-@router.get("/health")
-@router.get("/api/health")
-def health_check():
-    return {
-        "status": "healthy",
-        "service": settings.PROJECT_NAME,
-        "version": "2.0.0",
-        "device": settings.DEVICE,
-        "demo_mode": settings.DEMO_MODE
-    }
+router = APIRouter(tags=["Health"])
 
-@router.get("/api/instruments")
-def get_supported_instruments():
-    return {
-        "instruments": [
-            {
-                "id": "OHRC",
-                "name": "Orbiter High Resolution Camera",
-                "instrument": "OHRC",
-                "gsd_m_per_pixel": 0.28,
-                "modality": "Panchromatic High-Resolution",
-                "bands": 1,
-                "swath_km": 3.0,
-                "spectral_range_um": "0.45 - 0.70",
-                "description": "Very high resolution lunar optical imagery for fine hazard detection."
+
+@router.get("/health", response_model=HealthResponse)
+def health_check() -> HealthResponse | JSONResponse:
+    """Readiness and liveness check covering models, indexes, and device."""
+    indexes_ready = common_point_service.is_loaded()
+    models_ready = loftr_service.is_loaded()
+    cp_count, judge_count = common_point_service.get_counts()
+
+    # If critical indexes failed to load, return 503
+    if not indexes_ready:
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={
+                "status": "unavailable",
+                "detail": "Catalog indexes not loaded.",
+                "indexes_loaded": False,
+                "models_loaded": models_ready,
             },
-            {
-                "id": "TMC2",
-                "name": "Terrain Mapping Camera-2",
-                "instrument": "TMC-2",
-                "gsd_m_per_pixel": 5.0,
-                "modality": "Panchromatic Stereo Triplet",
-                "bands": 1,
-                "swath_km": 20.0,
-                "spectral_range_um": "0.50 - 0.85",
-                "description": "Stereo triplet mapping camera providing regional 3D context."
-            },
-            {
-                "id": "IIRS",
-                "name": "Imaging Infra-Red Spectrometer",
-                "instrument": "IIRS",
-                "gsd_m_per_pixel": 86.5,
-                "modality": "Hyperspectral (256 bands)",
-                "bands": 256,
-                "swath_km": 20.0,
-                "spectral_range_um": "0.80 - 5.00",
-                "description": "Hyperspectral mineralogical sensor represented via calibrated panchromatic proxy."
-            }
-        ]
-    }
+        )
+
+    device = settings.get_effective_device()
+
+    return HealthResponse(
+        status="ok",
+        models_loaded=models_ready,
+        indexes_loaded=indexes_ready,
+        device=device,
+        common_points=cp_count,
+        judge_points=judge_count,
+        tmc2_shards=34,
+        scientific_metadata={
+            "tmc2_gsd_m_per_px": settings.TMC2_GSD_M_PER_PX,
+            "ohrc_gsd_m_per_px": settings.OHRC_GSD_M_PER_PX,
+            "iirs_gsd_m_per_px": settings.IIRS_GSD_M_PER_PX,
+            "scale_ratio_ohrc_tmc2": settings.SCALE_RATIO_OHRC_TMC2,
+            "loftr_parameters": settings.LOFTR_NUM_PARAMETERS,
+        },
+    )

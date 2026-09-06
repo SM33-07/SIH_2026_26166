@@ -1,5 +1,0 @@
-Pair_Index,Latitude,Longitude,TMC2_File,IIRS_File
-2267,60.989399854,-4.677456283250024,/kaggle/working/tmc2_iirs_demo/final_4_pairs/Pair_2267_TMC2_Lat_60.989400_Lon_-4.677456.png,/kaggle/working/tmc2_iirs_demo/final_4_pairs/Pair_2267_IIRS_Lat_60.989400_Lon_-4.677456.png
-3463,60.839792389,-4.6951810540500105,/kaggle/working/tmc2_iirs_demo/final_4_pairs/Pair_3463_TMC2_Lat_60.839792_Lon_-4.695181.png,/kaggle/working/tmc2_iirs_demo/final_4_pairs/Pair_3463_IIRS_Lat_60.839792_Lon_-4.695181.png
-5353,60.6036142065,-4.695332187824988,/kaggle/working/tmc2_iirs_demo/final_4_pairs/Pair_5353_TMC2_Lat_60.603614_Lon_-4.695332.png,/kaggle/working/tmc2_iirs_demo/final_4_pairs/Pair_5353_IIRS_Lat_60.603614_Lon_-4.695332.png
-7674,60.217857712,-4.695636387849959,/kaggle/working/tmc2_iirs_demo/final_4_pairs/Pair_7674_TMC2_Lat_60.217858_Lon_-4.695636.png,/kaggle/working/tmc2_iirs_demo/final_4_pairs/Pair_7674_IIRS_Lat_60.217858_Lon_-4.695636.png

@@ -1,0 +1,2 @@
+Queries,Top1_accuracy_percent,Top5_accuracy_percent,Top10_accuracy_percent,MRR,Mean_rank
+10,90.0,100.0,100.0,0.95,1.1

@@ -1,37 +1,57 @@
-"""
-Sensor Registry API Endpoints (SIH26166).
-Provides specifications for Chandrayaan-2 instruments: OHRC, TMC-2, and IIRS.
-"""
+from __future__ import annotations
 
-import os
-import json
-from fastapi import APIRouter, HTTPException
-from backend.app.config import settings
-from backend.app.schemas.contracts import SensorListResponseSchema, SensorSpecSchema
+from typing import Any
+from fastapi import APIRouter
 
-router = APIRouter()
+from app.config import settings
+from app.services import iirs_service
 
-def _load_sensors_data():
-    sensors_file = os.path.join(settings.DEMO_DIR, "sensors.json")
-    if not os.path.exists(sensors_file):
-        # Fallback to backend/data/demo/sensors.json
-        sensors_file = os.path.join(settings.BASE_DIR, "backend", "data", "demo", "sensors.json")
-    if not os.path.exists(sensors_file):
-        raise HTTPException(status_code=404, detail="Sensors configuration not found.")
-    with open(sensors_file, "r", encoding="utf-8") as f:
-        return json.load(f)
+router = APIRouter(tags=["Sensors"])
 
-@router.get("/api/sensors", response_model=SensorListResponseSchema)
-def get_sensors():
-    return _load_sensors_data()
 
-@router.get("/api/sensors/{sensor_id}", response_model=SensorSpecSchema)
-def get_sensor(sensor_id: str):
-    data = _load_sensors_data()
-    s_id_clean = sensor_id.upper().replace("-", "").replace("_", "")
-    for s in data.get("sensors", []):
-        cand_id = s.get("id", "").upper().replace("-", "").replace("_", "")
-        cand_inst = s.get("instrument", "").upper().replace("-", "").replace("_", "")
-        if s_id_clean in (cand_id, cand_inst):
-            return s
-    raise HTTPException(status_code=404, detail=f"Sensor '{sensor_id}' not found.")
+@router.get("/sensors/characteristics")
+def get_sensor_characteristics() -> dict[str, Any]:
+    """Return authoritative scientific metadata for Chandrayaan-2 sensors."""
+    return {
+        "sensors": {
+            "tmc2": {
+                "name": "Terrain Mapping Camera-2",
+                "spectral_band": "Panchromatic (0.5 - 0.85 um)",
+                "gsd_m_per_px": settings.TMC2_GSD_M_PER_PX,
+                "swath_width_km": 20.0,
+                "usable_patches": 339735,
+                "shards": 34,
+                "patch_dimensions": "48 x 48 px",
+            },
+            "ohrc": {
+                "name": "Orbital High Resolution Camera",
+                "spectral_band": "Panchromatic (0.45 - 0.90 um)",
+                "gsd_m_per_px": settings.OHRC_GSD_M_PER_PX,
+                "swath_width_km": 3.0,
+                "tiles_in_catalog": 13770,
+                "tile_dimensions": "512 x 512 px",
+            },
+            "iirs": {
+                "name": "Imaging Infrared Spectrometer",
+                "spectral_band": "Hyperspectral (0.8 - 5.0 um, 256 bands)",
+                "gsd_m_per_px": settings.IIRS_GSD_M_PER_PX,
+                "proxy_dimensions": "11868 x 250 px",
+                "geolocation_status": "approximate_product_level",
+                "note": iirs_service.get_disclaimer(),
+            },
+        },
+        "scale_invariance": {
+            "ohrc_to_tmc2_ratio": settings.SCALE_RATIO_OHRC_TMC2,
+            "tmc2_to_iirs_ratio": round(settings.IIRS_GSD_M_PER_PX / settings.TMC2_GSD_M_PER_PX, 2),
+            "cumulative_scale_disparity": round(settings.IIRS_GSD_M_PER_PX / settings.OHRC_GSD_M_PER_PX, 2),
+        },
+    }
+
+
+@router.get("/regions")
+def get_regional_presets() -> dict[str, Any]:
+    """Return predefined regional bounds for key lunar landing sites."""
+    return {
+        "regions": iirs_service.get_regional_bounds(),
+        "disclaimer": "Regional centers are derived from rectangular region bounds for navigation convenience.",
+    }

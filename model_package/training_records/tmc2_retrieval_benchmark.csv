@@ -1,0 +1,11 @@
+Query,Correct_Rank,Top1,Top5,Top10,Reciprocal_Rank
+JUDGE_0001,1,True,True,True,1.0
+JUDGE_0056,1,True,True,True,1.0
+JUDGE_0111,1,True,True,True,1.0
+JUDGE_0167,1,True,True,True,1.0
+JUDGE_0222,1,True,True,True,1.0
+JUDGE_0278,1,True,True,True,1.0
+JUDGE_0333,2,False,True,True,0.5
+JUDGE_0389,1,True,True,True,1.0
+JUDGE_0444,1,True,True,True,1.0
+JUDGE_0500,1,True,True,True,1.0
