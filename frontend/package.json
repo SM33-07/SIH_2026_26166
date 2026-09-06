@@ -1,7 +1,7 @@
 {
   "name": "sih26166-lunar-correspondence",
   "private": true,
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,6 +9,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@react-three/drei": "^9.117.3",
+    "@react-three/fiber": "^8.17.10",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.263.1",
     "react": "^18.2.0",
