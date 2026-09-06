@@ -9,6 +9,7 @@ from app.services import iirs_service
 router = APIRouter(tags=["Sensors"])
 
 
+@router.get("/sensors")
 @router.get("/sensors/characteristics")
 def get_sensor_characteristics() -> dict[str, Any]:
     """Return authoritative scientific metadata for Chandrayaan-2 sensors."""

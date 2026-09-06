@@ -12,7 +12,7 @@ import ErrorAlert from './ErrorAlert'
 export default function CoordinateTab({ onResult }) {
   const [lat, setLat] = useState('')
   const [lon, setLon] = useState('')
-  const { loading, error, setLoading, setError, clearError } = useMatchStore()
+  const { loading, error, setLoading, setError, clearError, clearResult } = useMatchStore()
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -26,6 +26,7 @@ export default function CoordinateTab({ onResult }) {
       return
     }
 
+    clearResult()
     setLoading(true)
     clearError()
     try {

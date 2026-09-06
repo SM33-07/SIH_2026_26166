@@ -8,7 +8,7 @@ import { create } from 'zustand'
  */
 const useMatchStore = create((set, get) => ({
   // ─── Navigation ────────────────────────────────────────────────────────────
-  activeMode: 'explore',           // 'explore' | 'coordinate' | 'match'
+  activeMode: 'explore',           // 'explore' | 'coordinate' | 'match' | 'demo'
   setActiveMode: (mode) => set({ activeMode: mode, error: null }),
 
   // ─── System health (from GET /health) ──────────────────────────────────────

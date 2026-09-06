@@ -10,6 +10,16 @@ from app.config import settings
 router = APIRouter(tags=["Benchmarks"])
 
 
+@router.get("/benchmarks")
+def get_all_benchmarks() -> dict[str, Any]:
+    """Return overview of all benchmark suites."""
+    return {
+        "retrieval": get_retrieval_benchmark(),
+        "historical_step5d": get_historical_step5d(),
+        "audit": get_evaluation_audit(),
+    }
+
+
 @router.get("/benchmarks/retrieval")
 def get_retrieval_benchmark() -> dict[str, Any]:
     """Return TMC-2 retrieval benchmark summary."""

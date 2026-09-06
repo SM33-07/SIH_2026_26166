@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { Loader2 } from 'lucide-react'
 import { matchThreeImages } from '../api/client'
+import useMatchStore from '../store/matchStore'
 import ErrorAlert from './ErrorAlert'
 
 const MAX_BYTES = 20 * 1024 * 1024 // 20 MB
@@ -120,11 +121,15 @@ export default function MatchingPanel({ onResult }) {
   const allReady = files.iirs && files.tmc2 && files.ohrc
   const anyOversized = Object.values(files).some((f) => f && f.size > MAX_BYTES)
 
+  const { clearResult } = useMatchStore()
+
   async function handleSubmit(e) {
     e.preventDefault()
     if (!allReady || loading || anyOversized) return
+    clearResult()
     setLoading(true)
     setError(null)
+    onProcessingStart?.()
     try {
       const result = await matchThreeImages(files.ohrc, files.tmc2, files.iirs)
       onResult?.(result, 'match')

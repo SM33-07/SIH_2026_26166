@@ -2,6 +2,7 @@
  * DecisionBadge
  * Renders the tri-state decision (SAME LUNAR ZONE / DIFFERENT LUNAR ZONES / INSUFFICIENT EVIDENCE).
  * Consistency score is displayed as a numeric score, never as probability %.
+ * When isDemo is true, clearly labels as CONTROLLED DEMONSTRATION.
  */
 
 const DECISION_CONFIG = {
@@ -22,7 +23,7 @@ const DECISION_CONFIG = {
   },
 }
 
-export default function DecisionBadge({ decision, consistencyScore }) {
+export default function DecisionBadge({ decision, consistencyScore, isDemo = false }) {
   if (!decision) return null
 
   const cfg = DECISION_CONFIG[decision] || {
@@ -31,10 +32,21 @@ export default function DecisionBadge({ decision, consistencyScore }) {
     subColor: 'text-slate-400',
   }
 
+  const scoreLabel = isDemo ? 'DEMO CONSISTENCY SCORE' : 'CONSISTENCY SCORE'
+
   return (
-    <div className="flex flex-col items-center gap-2 py-2 decision-appear">
+    <div className="flex flex-col items-center gap-2 py-3 decision-appear">
+      {/* Optional Mode Tag */}
+      {isDemo && (
+        <span className="text-[9px] font-mono border border-amber-600/70 text-amber-300 bg-amber-950/40 px-3 py-0.5 uppercase tracking-widest font-bold">
+          CONTROLLED DEMONSTRATION VERDICT
+        </span>
+      )}
+
       <div
-        className={`border-2 px-8 py-4 text-center w-full max-w-xl ${cfg.colorClass}`}
+        className={`border-2 px-8 py-4 text-center w-full max-w-xl ${cfg.colorClass} ${
+          isDemo ? 'ring-2 ring-amber-500/30' : ''
+        }`}
         role="status"
         aria-live="polite"
       >
@@ -45,8 +57,8 @@ export default function DecisionBadge({ decision, consistencyScore }) {
       </div>
 
       {consistencyScore != null && (
-        <div className="text-xs font-mono tracking-wider text-slate-400 flex items-center gap-2">
-          <span className="uppercase">Consistency Score</span>
+        <div className="text-xs font-mono tracking-wider text-slate-400 flex items-center gap-2 flex-wrap justify-center">
+          <span className="uppercase text-[11px] text-slate-400">{scoreLabel}:</span>
           <span className={`font-bold text-base ${cfg.subColor}`}>
             {Number(consistencyScore).toFixed(6)}
           </span>

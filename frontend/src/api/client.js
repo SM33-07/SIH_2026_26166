@@ -143,6 +143,11 @@ export function getMediaUrl(judgeId, sensor) {
 // Sensor specifications
 // ---------------------------------------------------------------------------
 
+/** GET /api/v1/sensors */
+export function getSensors() {
+  return request('/sensors')
+}
+
 /** GET /api/v1/sensors/characteristics */
 export function getSensorCharacteristics() {
   return request('/sensors/characteristics')
@@ -151,6 +156,11 @@ export function getSensorCharacteristics() {
 // ---------------------------------------------------------------------------
 // Benchmarks
 // ---------------------------------------------------------------------------
+
+/** GET /api/v1/benchmarks */
+export function getBenchmarks() {
+  return request('/benchmarks')
+}
 
 /** GET /api/v1/benchmarks/retrieval */
 export function getBenchmarkRetrieval() {

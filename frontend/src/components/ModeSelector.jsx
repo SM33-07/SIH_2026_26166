@@ -4,6 +4,7 @@ const MODES = [
   { key: 'explore',    label: 'Orbit & Explore',      icon: '◉' },
   { key: 'coordinate', label: 'Coordinate Search',     icon: '⊕' },
   { key: 'match',      label: '3-Image Analysis',      icon: '⋮⋮' },
+  { key: 'demo',       label: 'Controlled Demo',       icon: '⚡' },
 ]
 
 export default function ModeSelector() {
