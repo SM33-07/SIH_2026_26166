@@ -7,7 +7,7 @@ import ErrorAlert from './ErrorAlert'
 /**
  * CoordinateTab
  * Inputs start EMPTY. No preloaded coordinates.
- * All backend coordinates, images, and metrics come from the server response.
+ * Technical hardware styling matching Mission Control UI.
  */
 export default function CoordinateTab({ onResult }) {
   const [lat, setLat] = useState('')
@@ -41,18 +41,27 @@ export default function CoordinateTab({ onResult }) {
 
   return (
     <div className="space-y-4">
-      <div>
-        <div className="tele-label mb-3">Lunar Coordinate Search</div>
-        <p className="text-xs text-slate-500 font-mono mb-4">
-          Search the registered observation catalog by surface coordinates. 
-          Latitude in [−90°, +90°], Longitude in [0°, 360°] or [−180°, +180°].
-        </p>
+      <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
+        <div>
+          <div className="text-xs font-mono font-semibold uppercase tracking-wider text-neutral-200 flex items-center gap-2">
+            <span className="w-1.5 h-1.5 bg-amber-400 rounded-full inline-block" />
+            Lunar Coordinate Query
+          </div>
+          <p className="text-[10px] font-mono text-neutral-500 mt-1">
+            Search registered Chandrayaan-2 observation catalog. Latitude [−90°, +90°], Longitude [0°, 360°].
+          </p>
+        </div>
+        <span className="text-[8px] font-mono border border-white/[0.1] text-neutral-400 px-2 py-0.5 uppercase tracking-widest hidden sm:block">
+          KD-TREE LOOKUP
+        </span>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="coord-lat" className="tele-label">Lunar Latitude</label>
+            <label htmlFor="coord-lat" className="text-[10px] font-mono text-neutral-400 uppercase tracking-wider">
+              Lunar Latitude (°N)
+            </label>
             <input
               id="coord-lat"
               type="number"
@@ -60,14 +69,16 @@ export default function CoordinateTab({ onResult }) {
               required
               value={lat}
               onChange={(e) => setLat(e.target.value)}
-              placeholder="Enter latitude (e.g., 60.8)"
-              className="bg-lunar-bg border border-lunar-border text-slate-100 px-3 py-2.5 font-mono text-sm
-                         focus:outline-none focus:border-lunar-accent transition-colors
-                         placeholder:text-slate-700"
+              placeholder="e.g., 60.8"
+              className="bg-black/60 border border-white/[0.12] text-neutral-100 px-3 py-2 font-mono text-xs
+                         focus:outline-none focus:border-amber-500/80 transition-colors
+                         placeholder:text-neutral-700"
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="coord-lon" className="tele-label">Lunar Longitude</label>
+            <label htmlFor="coord-lon" className="text-[10px] font-mono text-neutral-400 uppercase tracking-wider">
+              Lunar Longitude (°E)
+            </label>
             <input
               id="coord-lon"
               type="number"
@@ -75,33 +86,33 @@ export default function CoordinateTab({ onResult }) {
               required
               value={lon}
               onChange={(e) => setLon(e.target.value)}
-              placeholder="Enter longitude (e.g., 355.3)"
-              className="bg-lunar-bg border border-lunar-border text-slate-100 px-3 py-2.5 font-mono text-sm
-                         focus:outline-none focus:border-lunar-accent transition-colors
-                         placeholder:text-slate-700"
+              placeholder="e.g., 355.3"
+              className="bg-black/60 border border-white/[0.12] text-neutral-100 px-3 py-2 font-mono text-xs
+                         focus:outline-none focus:border-amber-500/80 transition-colors
+                         placeholder:text-neutral-700"
             />
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 pt-2">
           <button
             id="btn-coordinate-search"
             type="submit"
             disabled={loading || !lat.trim() || !lon.trim()}
-            className="flex items-center gap-2 bg-lunar-accent text-white px-6 py-2.5 text-xs font-mono font-bold
-                       uppercase tracking-widest border border-lunar-accent hover:bg-indigo-500
-                       disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="flex items-center gap-2 bg-amber-500/10 text-amber-400 px-5 py-2 text-xs font-mono font-semibold
+                       uppercase tracking-wider border border-amber-500/30 hover:bg-amber-500/20 hover:border-amber-500/50
+                       disabled:opacity-40 disabled:cursor-not-allowed transition-all"
           >
-            {loading && <Loader2 size={14} className="animate-spin" />}
-            FIND LUNAR OBSERVATION
+            {loading && <Loader2 size={13} className="animate-spin" />}
+            QUERY OBSERVATION
           </button>
           {(lat || lon) && (
             <button
               type="button"
               onClick={() => { setLat(''); setLon(''); clearError() }}
-              className="text-xs font-mono text-slate-600 hover:text-slate-400 transition-colors"
+              className="text-[10px] font-mono text-neutral-500 hover:text-neutral-300 transition-colors uppercase tracking-wider"
             >
-              CLEAR
+              CLEAR INPUTS
             </button>
           )}
         </div>

@@ -77,7 +77,7 @@ export default function ExportModal({ result, open, onClose }) {
           <button
             id="btn-export-download"
             onClick={downloadJson}
-            className="flex items-center gap-2 bg-lunar-accent text-white px-5 py-2 text-xs font-mono font-bold uppercase tracking-widest hover:bg-indigo-500 transition-colors border border-lunar-accent"
+            className="flex items-center gap-2 bg-lunar-accent text-white px-5 py-2 text-xs font-mono font-bold uppercase tracking-widest hover:bg-amber-600 transition-colors border border-lunar-accent"
           >
             ⬇ DOWNLOAD JSON
           </button>

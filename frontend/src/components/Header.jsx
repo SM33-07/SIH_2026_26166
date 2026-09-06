@@ -69,8 +69,8 @@ export default function Header() {
                 {online ? 'ONLINE' : 'DEGRADED'}
               </span>
               <span className="text-lunar-border">|</span>
-              <span className={`flex items-center gap-1 ${models ? 'text-indigo-300' : 'text-amber-400'}`}>
-                <span className={`w-1.5 h-1.5 rounded-full inline-block ${models ? 'bg-indigo-400' : 'bg-amber-400'}`} />
+              <span className={`flex items-center gap-1 ${models ? 'text-amber-400' : 'text-amber-400'}`}>
+                <span className={`w-1.5 h-1.5 rounded-full inline-block ${models ? 'bg-amber-400' : 'bg-amber-400'}`} />
                 MODEL {models ? 'READY' : 'LOADING'}
               </span>
               <span className="text-lunar-border">|</span>
@@ -88,21 +88,38 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Sensor tag row */}
-      <div className="border-t border-lunar-border/40 px-5 py-1.5 flex items-center gap-3">
-        <span className="text-[9px] font-mono tracking-widest text-slate-600 uppercase">SENSORS</span>
-        {[
-          { name: 'IIRS', color: 'text-sensor-iirs border-sensor-iirs/40 bg-sensor-iirs/5' },
-          { name: 'TMC-2', color: 'text-sensor-tmc2 border-sensor-tmc2/40 bg-sensor-tmc2/5' },
-          { name: 'OHRC', color: 'text-sensor-ohrc border-sensor-ohrc/40 bg-sensor-ohrc/5' },
-        ].map(({ name, color }) => (
-          <span key={name} className={`text-[10px] font-mono border px-2 py-0.5 ${color}`}>
-            {name}
-          </span>
-        ))}
-        <span className="text-slate-600 text-[9px] font-mono uppercase tracking-widest ml-auto">
-          LOCATE · MATCH · VERIFY · DECIDE
-        </span>
+      {/* Navigation / Sensor tag row */}
+      <div className="border-t border-lunar-border/40 px-5 py-1.5 flex items-center justify-between gap-3 overflow-x-auto text-[10px] font-mono">
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-[9px] font-mono tracking-widest text-slate-600 uppercase mr-1">SENSORS:</span>
+          {[
+            { name: 'IIRS', color: 'text-sensor-iirs border-sensor-iirs/40 bg-sensor-iirs/5' },
+            { name: 'TMC-2', color: 'text-sensor-tmc2 border-sensor-tmc2/40 bg-sensor-tmc2/5' },
+            { name: 'OHRC', color: 'text-sensor-ohrc border-sensor-ohrc/40 bg-sensor-ohrc/5' },
+          ].map(({ name, color }) => (
+            <span key={name} className={`text-[9px] font-mono border px-1.5 py-0.2 ${color}`}>
+              {name}
+            </span>
+          ))}
+        </div>
+
+        <nav className="flex items-center gap-3 text-slate-500 shrink-0">
+          <a href="#integration-section" className="hover:text-amber-300 transition-colors uppercase text-[9px] tracking-wider">
+            Integration
+          </a>
+          <span>·</span>
+          <a href="#performance-section" className="hover:text-amber-300 transition-colors uppercase text-[9px] tracking-wider">
+            Performance
+          </a>
+          <span>·</span>
+          <a href="#methodology-section" className="hover:text-amber-300 transition-colors uppercase text-[9px] tracking-wider">
+            Methodology
+          </a>
+          <span>·</span>
+          <a href="#limitations-section" className="hover:text-amber-300 transition-colors uppercase text-[9px] tracking-wider">
+            Limitations
+          </a>
+        </nav>
       </div>
     </header>
   )

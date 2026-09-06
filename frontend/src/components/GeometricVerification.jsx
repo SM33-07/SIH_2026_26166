@@ -129,7 +129,7 @@ export default function GeometricVerification({ geometricEvidence, featureMatche
         <MetricCard
           label="Mean Confidence"
           value={meanConf}
-          highlight="text-indigo-300"
+          highlight="text-amber-400"
           tooltip="Average confidence of LoFTR correspondence matches"
         />
         <MetricCard

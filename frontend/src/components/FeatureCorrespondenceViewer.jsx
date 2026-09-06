@@ -129,14 +129,14 @@ export default function FeatureCorrespondenceViewer({ images = {}, featureMatche
             LoFTR Feature Correspondence
           </div>
           <div className="text-[9px] font-mono text-slate-500 mt-0.5">
-            Checkpoint: <span className="text-indigo-300">{featureMatches.checkpoint || 'tmc2_loftr_available.pt'}</span>
+            Checkpoint: <span className="text-amber-400">{featureMatches.checkpoint || 'tmc2_loftr_available.pt'}</span>
             {featureMatches.architecture && <span className="ml-2">· {featureMatches.architecture}</span>}
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {meanConf && (
             <span className="text-[10px] font-mono text-slate-400 border border-lunar-border px-2 py-1">
-              Mean conf: <span className="text-indigo-300">{meanConf}</span>
+              Mean conf: <span className="text-amber-400">{meanConf}</span>
             </span>
           )}
         </div>

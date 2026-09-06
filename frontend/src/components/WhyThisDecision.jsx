@@ -10,7 +10,7 @@ const EVIDENCE_MAP = {
   geographic: {
     label: 'Geographic Evidence',
     icon: '⊙',
-    color: 'text-indigo-300',
+    color: 'text-amber-400',
   },
   correspondence: {
     label: 'Correspondence Evidence',

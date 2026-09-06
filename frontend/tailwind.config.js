@@ -8,17 +8,18 @@ export default {
         mono: ['JetBrains Mono', 'monospace'],
       },
       colors: {
-        'lunar-bg':     '#070B14',
-        'lunar-surface':'#0d1424',
-        'lunar-card':   '#0f1628',
-        'lunar-border': '#1a2540',
-        'lunar-accent': '#6366F1',
-        'lunar-accent2':'#818CF8',
-        'lunar-dim':    '#1e2d4a',
+        // Pure charcoal / carbon tones — NOT navy blue
+        'lunar-bg':      '#080808',
+        'lunar-surface': '#0c0c0c',
+        'lunar-card':    '#0a0a0a',
+        'lunar-border':  '#1c1c1c',
+        'lunar-accent':  '#d4940a',
+        'lunar-accent2': '#f5b731',
+        'lunar-dim':     '#181818',
         sensor: {
           iirs: '#ef4444',
-          tmc2: '#818cf8',
-          ohrc: '#f97316',
+          tmc2: '#f59e0b',
+          ohrc: '#d4d4d4',
         },
         decision: {
           same: '#22c55e',
@@ -27,10 +28,9 @@ export default {
         },
       },
       boxShadow: {
-        'glow-indigo': '0 0 24px rgba(99,102,241,0.3)',
-        'glow-green':  '0 0 24px rgba(34,197,94,0.3)',
-        'glow-red':    '0 0 24px rgba(239,68,68,0.3)',
-        'glow-amber':  '0 0 24px rgba(245,158,11,0.3)',
+        'glow-amber':  '0 0 20px rgba(212,148,10,0.2)',
+        'glow-green':  '0 0 20px rgba(34,197,94,0.2)',
+        'glow-red':    '0 0 20px rgba(239,68,68,0.2)',
       },
       animation: {
         'fade-in-up': 'fade-in-up 0.4s ease-out both',
