@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import io
-from typing import Any
+from typing import Annotated, Any, Optional
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 import numpy as np
 from PIL import Image
@@ -60,11 +60,11 @@ def _decode_image_upload(file_bytes: bytes, filename: str) -> tuple[np.ndarray, 
 @router.post("/upload/three-sensor", response_model=ThreeImageMatchResponse)
 @router.post("/match/three-images", response_model=ThreeImageMatchResponse)
 async def match_three_images(
-    ohrc_image: UploadFile = File(...),
-    tmc2_image: UploadFile = File(...),
-    iirs_image: UploadFile = File(...),
-    latitude: Optional[float] = Form(None),
-    longitude: Optional[float] = Form(None),
+    ohrc_image: Annotated[UploadFile, File()],
+    tmc2_image: Annotated[UploadFile, File()],
+    iirs_image: Annotated[UploadFile, File()],
+    latitude: Annotated[Optional[float], Form()] = None,
+    longitude: Annotated[Optional[float], Form()] = None,
 ) -> ThreeImageMatchResponse:
     """Multi-modal cross-sensor matching pipeline over uploaded sensor imagery."""
     warnings: list[str] = []
