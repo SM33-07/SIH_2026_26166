@@ -159,6 +159,8 @@ export default function InlineImageUpload({ onResult, sensorSpecs }) {
     try {
       const result = await matchThreeImages(files.ohrc, files.tmc2, files.iirs)
       setDone(true)
+      // Automatically clear uploaded images once processed
+      setFiles({ iirs: null, tmc2: null, ohrc: null })
 
       // Extract location from backend response — NO fallback coordinates
       const loc = result?.location ?? result?.matched_point ?? result?.best_match ?? null

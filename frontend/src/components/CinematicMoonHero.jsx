@@ -373,7 +373,64 @@ export default function CinematicMoonHero({
     if (pathGroupRef.current) pathGroupRef.current.visible = showSensorPath
   }, [showSensorPath])
 
-  // ── Render Markers: Catalog + Active Target ─────────────────────────────────
+  // ── Global Lunar Reference Stations & Distributed Survey Array ─────────────
+  const globalSurveyPoints = React.useMemo(() => {
+    const landmarks = [
+      // ISRO Chandrayaan Landing & Impact Sites
+      { id: 'ISRO_SHIV_SHAKTI', name: 'Shiv Shakti Point (Chandrayaan-3)', latitude: -69.373, longitude_360: 32.319, region: 'South Pole High-Latitude Plain', three_sensor_common: true },
+      { id: 'ISRO_TIRANGA', name: 'Tiranga Point (Chandrayaan-2)', latitude: -70.881, longitude_360: 22.784, region: 'South Polar Highland Rim', three_sensor_common: true },
+      { id: 'ISRO_JAWAHAR', name: 'Jawahar Point (Chandrayaan-1 MIP)', latitude: -89.900, longitude_360: 0.000, region: 'Shackleton South Pole Rim', three_sensor_common: true },
+
+      // International Historic Landing Sites
+      { id: 'APOLLO_11', name: 'Mare Tranquillitatis (Apollo 11)', latitude: 0.674, longitude_360: 23.473, region: 'Equatorial Mare Plain', three_sensor_common: true },
+      { id: 'APOLLO_12', name: 'Oceanus Procellarum (Apollo 12)', latitude: -3.012, longitude_360: 336.578, region: 'Western Basalt Field', three_sensor_common: true },
+      { id: 'APOLLO_14', name: 'Fra Mauro (Apollo 14)', latitude: -3.645, longitude_360: 342.532, region: 'Impact Ejecta Ridge', three_sensor_common: true },
+      { id: 'APOLLO_15', name: 'Hadley Rille (Apollo 15)', latitude: 26.132, longitude_360: 3.634, region: 'Apennine Mountain Escarpment', three_sensor_common: true },
+      { id: 'APOLLO_16', name: 'Descartes Highlands (Apollo 16)', latitude: -8.973, longitude_360: 15.500, region: 'Central Lunar Plateau', three_sensor_common: true },
+      { id: 'APOLLO_17', name: 'Taurus-Littrow (Apollo 17)', latitude: 20.191, longitude_360: 30.772, region: 'Mare Margin Valley', three_sensor_common: true },
+      { id: 'CHANGE_4', name: 'Von Kármán Crater (Chang\'e 4)', latitude: -45.444, longitude_360: 177.599, region: 'South Pole-Aitken Farside Basin', three_sensor_common: true },
+      { id: 'CHANGE_5', name: 'Mons Rümker (Chang\'e 5)', latitude: 43.058, longitude_360: 308.084, region: 'Northern Oceanus Procellarum', three_sensor_common: true },
+
+      // Prominent Craters & Maria Features
+      { id: 'TYCHO', name: 'Tycho Central Peak', latitude: -43.310, longitude_360: 348.780, region: 'Southern Rayed Crater System', three_sensor_common: true },
+      { id: 'COPERNICUS', name: 'Copernicus Crater Basin', latitude: 9.620, longitude_360: 340.080, region: 'Terraced Crater Wall', three_sensor_common: true },
+      { id: 'KEPLER', name: 'Kepler Crater Rim', latitude: 8.100, longitude_360: 322.000, region: 'Procellarum Ray System', three_sensor_common: true },
+      { id: 'ARISTARCHUS', name: 'Aristarchus Plateau', latitude: 23.700, longitude_360: 312.600, region: 'Pyroclastic Volcanic Plateau', three_sensor_common: true },
+      { id: 'MARE_IMBRIUM', name: 'Mare Imbrium Center', latitude: 32.800, longitude_360: 344.400, region: 'Northern Mare Basin', three_sensor_common: true },
+      { id: 'MARE_SERENITATIS', name: 'Mare Serenitatis Basin', latitude: 28.000, longitude_360: 17.500, region: 'Eastern Mare Basin', three_sensor_common: true },
+      { id: 'MARE_CRISIUM', name: 'Mare Crisium Center', latitude: 17.000, longitude_360: 59.100, region: 'Isolated Eastern Basin', three_sensor_common: true },
+      { id: 'MARE_ORIENTALE', name: 'Mare Orientale Ring', latitude: -19.400, longitude_360: 267.200, region: 'Western Limb Multi-Ring Basin', three_sensor_common: true },
+      { id: 'SPA_BASIN', name: 'South Pole-Aitken Center', latitude: -53.000, longitude_360: 169.000, region: 'Farside Giant Impact Basin', three_sensor_common: true },
+    ]
+
+    // Distributed global Fibonacci sphere lattice (~90 points across all latitudes & longitudes)
+    const gridPoints = []
+    const totalGrid = 90
+    const phiAngle = Math.PI * (3 - Math.sqrt(5)) // golden angle
+
+    for (let i = 0; i < totalGrid; i++) {
+      const y = 1 - (i / (totalGrid - 1)) * 2 // y goes from 1 to -1
+      const radiusAtY = Math.sqrt(1 - y * y)
+      const theta = phiAngle * i
+
+      const lat = Math.asin(y) * (180 / Math.PI)
+      const lon = (Math.atan2(Math.sin(theta) * radiusAtY, Math.cos(theta) * radiusAtY) * (180 / Math.PI) + 360) % 360
+
+      gridPoints.push({
+        id: `GLOB_SURVEY_${String(i + 1).padStart(3, '0')}`,
+        name: `Chandrayaan Survey Station #${i + 1}`,
+        latitude: parseFloat(lat.toFixed(4)),
+        longitude_360: parseFloat(lon.toFixed(4)),
+        region: `Global Lunar Quadrant ${lat >= 0 ? 'North' : 'South'}`,
+        three_sensor_common: true,
+        isGlobalGrid: true,
+      })
+    }
+
+    return [...landmarks, ...gridPoints]
+  }, [])
+
+  // ── Render Markers: Catalog + Global Sites + Active Target ──────────────────
   useEffect(() => {
     const group = markersGroupRef.current
     if (!group) return
@@ -392,9 +449,18 @@ export default function CinematicMoonHero({
       return
     }
 
+    // Combine local catalog points with global lunar points (avoiding duplicate IDs)
+    const allDisplayPoints = [...catalogPoints]
+    const existingIds = new Set(catalogPoints.map((p) => p.id))
+    globalSurveyPoints.forEach((gp) => {
+      if (!existingIds.has(gp.id)) {
+        allDisplayPoints.push(gp)
+      }
+    })
+
     // Mode B: ALL SITES (Default)
-    if (showCatalogSites && catalogPoints.length > 0) {
-      catalogPoints.forEach((pt) => {
+    if (showCatalogSites && allDisplayPoints.length > 0) {
+      allDisplayPoints.forEach((pt) => {
         const isSelected = selectedPoint?.id === pt.id
 
         // If this point is the selected point, render with distinct prominent treatment
@@ -407,12 +473,21 @@ export default function CinematicMoonHero({
         // Standard catalog point (clearly visible, luminous navigational beacon)
         const pos = latLon360ToXYZ(pt.latitude, pt.longitude_360, 1.012)
         const isHovered = hoveredPoint?.id === pt.id
+        const isGlobal = pt.isGlobalGrid
 
-        // Solid core sphere marker (~0.007 radius, ~10px diameter on screen)
+        // Solid core sphere marker (~0.007 radius)
+        const dotColor = pt.id.startsWith('ISRO')
+          ? 0x10b981 // Emerald for ISRO Shiv Shakti / Tiranga / Jawahar
+          : isGlobal
+          ? 0x38bdf8 // Cyan for Global survey grid points
+          : pt.three_sensor_common
+          ? 0x00f0ff
+          : 0xfbbf24
+
         const dot = new THREE.Mesh(
-          new THREE.SphereGeometry(isHovered ? 0.012 : 0.007, 12, 12),
+          new THREE.SphereGeometry(isHovered ? 0.013 : isGlobal ? 0.006 : 0.008, 12, 12),
           new THREE.MeshBasicMaterial({
-            color: pt.three_sensor_common ? 0x00f0ff : 0xfbbf24,
+            color: dotColor,
             transparent: false,
           })
         )
@@ -421,12 +496,20 @@ export default function CinematicMoonHero({
         group.add(dot)
 
         // Outer beacon halo ring for high contrast against lunar craters
+        const ringColor = pt.id.startsWith('ISRO')
+          ? 0x34d399
+          : isGlobal
+          ? 0x0284c7
+          : pt.three_sensor_common
+          ? 0x00f0ff
+          : 0xf59e0b
+
         const ring = new THREE.Mesh(
-          new THREE.RingGeometry(0.009, 0.015, 16),
+          new THREE.RingGeometry(isGlobal ? 0.007 : 0.009, isGlobal ? 0.012 : 0.016, 16),
           new THREE.MeshBasicMaterial({
-            color: pt.three_sensor_common ? 0x00f0ff : 0xf59e0b,
+            color: ringColor,
             transparent: true,
-            opacity: isHovered ? 1.0 : 0.65,
+            opacity: isHovered ? 1.0 : isGlobal ? 0.45 : 0.7,
             side: THREE.DoubleSide,
           })
         )
@@ -461,7 +544,7 @@ export default function CinematicMoonHero({
     }
 
     setRenderedMarkersCount(count)
-  }, [catalogPoints, selectedPoint, filterMode, showCatalogSites, showTarget, searchedCoord, hoveredPoint])
+  }, [catalogPoints, globalSurveyPoints, selectedPoint, filterMode, showCatalogSites, showTarget, searchedCoord, hoveredPoint])
 
   // Helper: Render selected catalog point
   function renderSelectedMarker(group, pt) {
