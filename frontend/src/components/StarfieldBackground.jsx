@@ -92,6 +92,11 @@ export default function StarfieldBackground() {
       })
     }
 
+    // Check prefers-reduced-motion preference
+    const prefersReducedMotion = typeof window !== 'undefined' &&
+      window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
     initStars()
 
     let time = 0
@@ -100,19 +105,21 @@ export default function StarfieldBackground() {
     const render = () => {
       time += 0.016
 
-      // Smooth cursor parallax interpolation
-      mouse.x += (mouse.targetX - mouse.x) * 0.03
-      mouse.y += (mouse.targetY - mouse.y) * 0.03
+      // Smooth cursor parallax interpolation (suppressed in reduced motion)
+      if (!prefersReducedMotion) {
+        mouse.x += (mouse.targetX - mouse.x) * 0.03
+        mouse.y += (mouse.targetY - mouse.y) * 0.03
+      }
 
-      const parallaxX = (mouse.x - width / 2) * 0.02
-      const parallaxY = (mouse.y - height / 2) * 0.02
+      const parallaxX = prefersReducedMotion ? 0 : (mouse.x - width / 2) * 0.02
+      const parallaxY = prefersReducedMotion ? 0 : (mouse.y - height / 2) * 0.02
 
       // Pure pitch-black background
       ctx.fillStyle = '#000000'
       ctx.fillRect(0, 0, width, height)
 
-      // Spawn meteors periodically (every 2.5 - 5 seconds)
-      if (time - lastMeteorTime > Math.random() * 2.5 + 2.5) {
+      // Spawn meteors periodically (disabled if reduced motion requested)
+      if (!prefersReducedMotion && time - lastMeteorTime > Math.random() * 2.5 + 2.5) {
         if (meteors.length < 3) {
           createMeteor()
           lastMeteorTime = time
@@ -209,11 +216,23 @@ export default function StarfieldBackground() {
       animationFrameId = requestAnimationFrame(render)
     }
 
+    // Pause rendering loop when browser tab is inactive to preserve CPU & GPU
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        cancelAnimationFrame(animationFrameId)
+      } else {
+        cancelAnimationFrame(animationFrameId)
+        animationFrameId = requestAnimationFrame(render)
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
     render()
 
     return () => {
       window.removeEventListener('mousemove', handleMouseMove)
       window.removeEventListener('resize', handleResize)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
       cancelAnimationFrame(animationFrameId)
     }
   }, [])
@@ -221,9 +240,10 @@ export default function StarfieldBackground() {
   return (
     <canvas
       ref={canvasRef}
+      aria-hidden="true"
+      role="presentation"
       className="fixed inset-0 pointer-events-none z-0 w-full h-full"
       style={{ background: '#000000' }}
     />
   )
 }
-

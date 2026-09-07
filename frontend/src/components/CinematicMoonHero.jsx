@@ -37,6 +37,20 @@ function createGreatCircleArc(p1, p2, radius, segments = 24) {
   return points
 }
 
+// Thoroughly dispose Three.js geometries and materials when clearing dynamic groups
+function clearGroup(group) {
+  if (!group) return
+  while (group.children.length) {
+    const child = group.children[0]
+    if (child.geometry) child.geometry.dispose()
+    if (child.material) {
+      if (Array.isArray(child.material)) child.material.forEach((m) => m.dispose())
+      else child.material.dispose()
+    }
+    group.remove(child)
+  }
+}
+
 // Local textures served from /public (100% equirectangular 2:1 cylindrical maps)
 const MOON_COLOR_PRIMARY  = '/moon_color.jpg'
 const MOON_BUMP_PRIMARY   = '/moon_bump.jpg'
@@ -434,7 +448,7 @@ export default function CinematicMoonHero({
   useEffect(() => {
     const group = markersGroupRef.current
     if (!group) return
-    while (group.children.length) group.remove(group.children[0])
+    clearGroup(group)
 
     let count = 0
     const activeTarget = searchedCoord || selectedPoint
@@ -608,7 +622,7 @@ export default function CinematicMoonHero({
   useEffect(() => {
     const pathGroup = pathGroupRef.current
     if (!pathGroup) return
-    while (pathGroup.children.length) pathGroup.remove(pathGroup.children[0])
+    clearGroup(pathGroup)
 
     const activeSensors = activeResult?.sensors
     if (!activeSensors || !selectedPoint) return
@@ -662,7 +676,7 @@ export default function CinematicMoonHero({
   useEffect(() => {
     const rg = resultGroupRef.current
     if (!rg) return
-    while (rg.children.length) rg.remove(rg.children[0])
+    clearGroup(rg)
     if (!matchResultPoint) return
 
     const pos = latLon360ToXYZ(matchResultPoint.latitude, matchResultPoint.longitude_360, 1.028)
