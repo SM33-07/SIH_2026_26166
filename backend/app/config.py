@@ -60,15 +60,54 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     def resolve_paths(self) -> None:
-        """Resolve any unset paths relative to MODEL_PACKAGE_ROOT."""
+        """Resolve any unset paths relative to MODEL_PACKAGE_ROOT or bundled local data."""
+        # 1. Probe candidate roots for model_package
+        candidates = [
+            self.MODEL_PACKAGE_ROOT,
+            os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "model_package")),
+            os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "model_package")),
+            os.path.abspath(os.path.join(os.getcwd(), "model_package")),
+            os.path.abspath(os.path.join(os.getcwd(), "..", "model_package")),
+            "/opt/render/project/src/model_package",
+            "/model_package",
+        ]
+        for c in candidates:
+            if c and os.path.exists(c) and (
+                os.path.exists(os.path.join(c, "indexes")) or os.path.exists(os.path.join(c, "models"))
+            ):
+                self.MODEL_PACKAGE_ROOT = os.path.abspath(c)
+                break
+
+        # 2. Local bundled data fallback (inside backend/data)
+        local_data = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data"))
+
+        # 3. Resolve INDEX_ROOT with local fallback
+        if not self.INDEX_ROOT or not os.path.exists(self.INDEX_ROOT):
+            pkg_indexes = os.path.join(self.MODEL_PACKAGE_ROOT, "indexes")
+            local_indexes = os.path.join(local_data, "indexes")
+            if os.path.exists(pkg_indexes) and os.path.exists(os.path.join(pkg_indexes, "master_three_sensor_common_points.csv")):
+                self.INDEX_ROOT = pkg_indexes
+            elif os.path.exists(local_indexes) and os.path.exists(os.path.join(local_indexes, "master_three_sensor_common_points.csv")):
+                self.INDEX_ROOT = local_indexes
+            else:
+                self.INDEX_ROOT = pkg_indexes
+
+        # 4. Resolve JUDGE_LIBRARY_ROOT with local fallback
+        if not self.JUDGE_LIBRARY_ROOT or not os.path.exists(self.JUDGE_LIBRARY_ROOT):
+            pkg_judge = os.path.join(self.MODEL_PACKAGE_ROOT, "judge_library")
+            local_judge = os.path.join(local_data, "judge_library")
+            if os.path.exists(pkg_judge) and os.path.exists(os.path.join(pkg_judge, "three_sensor_judge_image_library.csv")):
+                self.JUDGE_LIBRARY_ROOT = pkg_judge
+            elif os.path.exists(local_judge) and os.path.exists(os.path.join(local_judge, "three_sensor_judge_image_library.csv")):
+                self.JUDGE_LIBRARY_ROOT = local_judge
+            else:
+                self.JUDGE_LIBRARY_ROOT = pkg_judge
+
+        # 5. Resolve remaining roots
         if not self.MODEL_ROOT:
             self.MODEL_ROOT = os.path.join(self.MODEL_PACKAGE_ROOT, "models")
-        if not self.INDEX_ROOT:
-            self.INDEX_ROOT = os.path.join(self.MODEL_PACKAGE_ROOT, "indexes")
         if not self.MAPPING_ROOT:
             self.MAPPING_ROOT = os.path.join(self.MODEL_PACKAGE_ROOT, "mappings")
-        if not self.JUDGE_LIBRARY_ROOT:
-            self.JUDGE_LIBRARY_ROOT = os.path.join(self.MODEL_PACKAGE_ROOT, "judge_library")
         if not self.JUDGE_VISUALS_ROOT:
             self.JUDGE_VISUALS_ROOT = os.path.join(self.MODEL_PACKAGE_ROOT, "judge_visuals")
         if not self.TRAINING_RECORDS_ROOT:
