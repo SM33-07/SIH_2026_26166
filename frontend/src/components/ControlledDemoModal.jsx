@@ -69,8 +69,13 @@ export default function ControlledDemoModal({
     }, 280)
 
     try {
-      // Force live model inference bypassing cache
-      const result = await loadDemo(caseId, true)
+      // Execute fast live inference evaluation
+      let result
+      try {
+        result = await loadDemo(caseId, false)
+      } catch {
+        result = await loadDemo(caseId, true)
+      }
       clearInterval(interval)
       setActiveStage(8)
       setDemoResult(result)

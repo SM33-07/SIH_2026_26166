@@ -1,12 +1,24 @@
 import React from 'react'
 import useMatchStore from '../store/matchStore'
 
-export default function MissionControlHeader({ onOpenDemo }) {
+export default function MissionControlHeader({ onOpenDemo, onOpenCorrespond }) {
   const { health, healthError } = useMatchStore()
 
   const online = health?.status === 'ok'
   const device = health?.device ?? 'CPU'
   const pointsCount = health?.common_points != null ? Number(health.common_points).toLocaleString() : '—'
+
+  const handleNavClick = (e, targetId) => {
+    e.preventDefault()
+    if (targetId === 'results-workspace' && onOpenCorrespond) {
+      onOpenCorrespond()
+      return
+    }
+    const elem = document.getElementById(targetId)
+    if (elem) {
+      elem.scrollIntoView({ behavior: 'smooth' })
+    }
+  }
 
   return (
     <header role="banner" className="relative z-30 w-full border-b border-white/[0.08] bg-[#020305]/80 backdrop-blur-md">
@@ -26,40 +38,45 @@ export default function MissionControlHeader({ onOpenDemo }) {
 
         {/* Minimal Mission Navigation */}
         <nav aria-label="Mission Workspace Sections" className="hidden lg:flex items-center gap-5 text-[11px] font-mono tracking-widest text-neutral-300">
-          <a
-            href="#hero-moon"
-            className="py-2 px-1 hover:text-amber-400 transition-colors uppercase focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+          <button
+            type="button"
+            onClick={(e) => handleNavClick(e, 'hero-moon')}
+            className="py-2 px-1 hover:text-amber-400 transition-colors uppercase focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 cursor-pointer bg-transparent border-none text-[11px] font-mono tracking-widest text-neutral-300"
           >
             EXPLORE
-          </a>
+          </button>
           <span className="text-neutral-600">/</span>
-          <a
-            href="#observation-workspace"
-            className="py-2 px-1 hover:text-amber-400 transition-colors uppercase focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+          <button
+            type="button"
+            onClick={(e) => handleNavClick(e, 'observation-workspace')}
+            className="py-2 px-1 hover:text-amber-400 transition-colors uppercase focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 cursor-pointer bg-transparent border-none text-[11px] font-mono tracking-widest text-neutral-300"
           >
             OBSERVE
-          </a>
+          </button>
           <span className="text-neutral-600">/</span>
-          <a
-            href="#correspondence-workspace"
-            className="py-2 px-1 hover:text-amber-400 transition-colors uppercase focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+          <button
+            type="button"
+            onClick={(e) => handleNavClick(e, 'results-workspace')}
+            className="py-2 px-1 hover:text-amber-400 transition-colors uppercase focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 cursor-pointer bg-transparent border-none text-[11px] font-mono tracking-widest text-neutral-300"
           >
             CORRESPOND
-          </a>
+          </button>
           <span className="text-neutral-600">/</span>
-          <a
-            href="#geographic-mapping-panel"
-            className="py-2 px-1 hover:text-amber-400 transition-colors uppercase focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+          <button
+            type="button"
+            onClick={(e) => handleNavClick(e, 'science-briefing')}
+            className="py-2 px-1 hover:text-amber-400 transition-colors uppercase focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 cursor-pointer bg-transparent border-none text-[11px] font-mono tracking-widest text-neutral-300"
           >
-            VERIFY
-          </a>
+            SCIENCE
+          </button>
           <span className="text-neutral-600">/</span>
-          <a
-            href="#decision-verdict-section"
-            className="py-2 px-1 hover:text-amber-400 transition-colors uppercase focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+          <button
+            type="button"
+            onClick={(e) => handleNavClick(e, 'technical-faq')}
+            className="py-2 px-1 hover:text-amber-400 transition-colors uppercase focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 cursor-pointer bg-transparent border-none text-[11px] font-mono tracking-widest text-neutral-300"
           >
-            RESULTS
-          </a>
+            FAQ
+          </button>
         </nav>
 
         {/* Actions & Live Telemetry Strip */}

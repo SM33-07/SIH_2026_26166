@@ -101,9 +101,27 @@ export function getCommonPoint(id) {
   return request(`/common-points/${encodeURIComponent(id)}`)
 }
 
+/**
+ * GET /api/v1/lunar-points
+ * Authoritative point dataset with backend mapped & analysis_ready flags
+ */
+export function listLunarPoints({ limit = 120 } = {}) {
+  const params = new URLSearchParams({ limit: String(limit) })
+  return request(`/lunar-points?${params}`)
+}
+
 // ---------------------------------------------------------------------------
 // Coordinate search
 // ---------------------------------------------------------------------------
+
+/**
+ * Normalizes longitude into [-180, +180] convention.
+ */
+export function normalizeLongitude180(lon) {
+  let l = ((Number(lon) + 180) % 360)
+  if (l < 0) l += 360
+  return l - 180
+}
 
 /**
  * POST /api/v1/coordinate/search
@@ -112,7 +130,8 @@ export function getCommonPoint(id) {
  * @param {object} [options]
  */
 export function searchCoordinate(latitude, longitude, options = {}) {
-  return postJson('/coordinate/search', { latitude, longitude }, options)
+  const normLon = normalizeLongitude180(longitude)
+  return postJson('/coordinate/search', { latitude: Number(latitude), longitude: normLon }, options)
 }
 
 // ---------------------------------------------------------------------------
@@ -158,6 +177,18 @@ export function matchThreeImages(ohrcFile, tmc2File, iirsFile) {
   form.append('tmc2_image', tmc2File)
   form.append('iirs_image', iirsFile)
   return request('/match/three-images', { method: 'POST', body: form })
+}
+
+/**
+ * POST /api/v1/upload/three-sensor
+ * Dedicated multipart upload supporting telemetry metadata and raw arrays
+ */
+export function uploadThreeSensorImages(formData, options = {}) {
+  return request('/upload/three-sensor', {
+    method: 'POST',
+    body: formData,
+    ...options,
+  })
 }
 
 // ---------------------------------------------------------------------------

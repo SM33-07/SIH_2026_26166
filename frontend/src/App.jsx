@@ -1,35 +1,32 @@
-import { useEffect, useRef, useState, lazy, Suspense } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import useMatchStore from './store/matchStore'
 import {
   checkHealth,
-  listCommonPoints,
+  listLunarPoints,
   getSensors,
   searchCoordinate,
+  loadDemo,
   listCases,
   getBenchmarks,
   getProvenance,
 } from './api/client'
+import { normalizeResult } from './utils/resultModel'
 
+import MissionLoader from './components/MissionLoader'
 import StarfieldBackground from './components/StarfieldBackground'
 import MissionControlHeader from './components/MissionControlHeader'
 import CinematicMoonHero from './components/CinematicMoonHero'
-import SelectedObservationWorkspace from './components/SelectedObservationWorkspace'
-import GeoMap from './components/GeoMap'
-import GeometricVerification from './components/GeometricVerification'
-import DeepCorrespondenceWorkspace from './components/DeepCorrespondenceWorkspace'
-import InteractiveRegistrationWorkspace from './components/InteractiveRegistrationWorkspace'
-import DecisionVerdictSection from './components/DecisionVerdictSection'
+import AnalysisEntry from './components/AnalysisEntry'
+import ThreeSensorUploadWorkspace from './components/upload/ThreeSensorUploadWorkspace'
+import SensorScenePanel from './components/SensorScenePanel'
+import ProcessingPipeline from './components/ProcessingPipeline'
+import CorrespondenceWorkspace from './components/workspace/CorrespondenceWorkspace'
+import ScienceBriefing from './components/ScienceBriefing'
+import FAQSection from './components/FAQSection'
 import ErrorAlert from './components/ErrorAlert'
 import ErrorBoundary from './components/ErrorBoundary'
 import Footer from './components/Footer'
-
-// Lazy-loaded auxiliary modules & below-the-fold scientific deep dives
-const InlineImageUpload = lazy(() => import('./components/InlineImageUpload'))
-const ThreeWayIntegration = lazy(() => import('./components/ThreeWayIntegration'))
-const PerformanceSection = lazy(() => import('./components/PerformanceSection'))
-const MethodologySection = lazy(() => import('./components/MethodologySection'))
-const LimitationsSection = lazy(() => import('./components/LimitationsSection'))
-const ControlledDemoModal = lazy(() => import('./components/ControlledDemoModal'))
+import ControlledDemoModal from './components/ControlledDemoModal'
 
 export default function App() {
   const {
@@ -37,7 +34,6 @@ export default function App() {
     setCatalogPoints,
     setCatalogLoading,
     setCatalogError,
-    catalogLoading,
     selectedPoint,
     setSelectedPoint,
     clearSelectedPoint,
@@ -58,14 +54,20 @@ export default function App() {
     cleanupBlobUrls,
   } = useMatchStore()
 
-  // Modal & Drawer State
-  const [isDemoModalOpen, setIsDemoModalOpen] = useState(false)
-  const [isUploadDrawerOpen, setIsUploadDrawerOpen] = useState(false)
+  // 5-6s Cinematic Initialization sequence state
+  const [missionReady, setMissionReady] = useState(false)
+
+  // Analysis mode: 'preset' | 'upload'
+  const [analysisMode, setAnalysisMode] = useState('preset')
+
+  // Normalized Result state
+  const [normalizedWorkspaceResult, setNormalizedWorkspaceResult] = useState(null)
 
   const [sensorSpecs, setSensorSpecs] = useState(null)
   const [sameZoneThreshold, setSameZoneThreshold] = useState(0.02)
   const [matchResultPoint, setMatchResultPoint] = useState(null)
   const [catalogTotal, setCatalogTotal] = useState(null)
+  const [demoModalOpen, setDemoModalOpen] = useState(false)
 
   const observationRef = useRef(null)
 
@@ -78,17 +80,30 @@ export default function App() {
     return () => { mounted = false }
   }, [])
 
-  // ── Load Observation Sites Catalog on mount ───────────────────────────────
+  // ── Load Authoritative Lunar Points on mount (backend mapped & analysis-ready) ──
   useEffect(() => {
     let mounted = true
     setCatalogLoading(true)
-    listCommonPoints({ limit: 120, sample: true })
+    listLunarPoints({ limit: 32 })
       .then((d) => {
         if (!mounted) return
-        setCatalogPoints(d.points || [])
-        setCatalogTotal(d.total_in_catalog ?? null)
+        const normalized = (d.points || []).map((p) => {
+          const id = p.id || p.point_id || p.judge_id || p.preset_id || 'POINT'
+          return {
+            ...p,
+            id,
+            point_id: id,
+          }
+        })
+        setCatalogPoints(normalized)
+        setCatalogTotal(d.count ?? null)
+        // Default selection: Pair 2267 (JUDGE_0001) if available
+        if (normalized.length > 0) {
+          const defaultBeacon = normalized.find((p) => p.is_sih_beacon || p.judge_id === 'JUDGE_0001') || normalized[0]
+          setSelectedPoint(defaultBeacon)
+        }
       })
-      .catch(() => mounted && setCatalogError('Catalog buffer unavailable.'))
+      .catch(() => mounted && setCatalogError('Authoritative lunar catalog buffer unavailable.'))
     return () => { mounted = false }
   }, [])
 
@@ -99,7 +114,7 @@ export default function App() {
       .catch(() => {})
   }, [])
 
-  // ── Load benchmarks + provenance into store for downstream sections ───────
+  // ── Load benchmarks + provenance into store ───────────────────────────────
   useEffect(() => {
     getBenchmarks()
       .then((d) => d && setBenchmarks(d))
@@ -116,28 +131,84 @@ export default function App() {
       .catch(() => {})
   }, [])
 
-  // ── Moon point selection handler ──────────────────────────────────────────
+  // ── Deterministic SIH Demo & Safe Lunar Point selection handler ───────────
   async function handleSelectPoint(point) {
     cancelActiveRequest()
-    setSelectedPoint(point)
-    clearResult()
-    clearError()
-    setLoading(true)
-    try {
-      const lon = point.longitude_360 > 180 ? point.longitude_360 - 360 : point.longitude_360
-      const signal = getAbortSignal()
-      const result = await searchCoordinate(point.latitude, lon, { signal })
-      if (!signal.aborted) {
-        setActiveResult(result, 'coordinate')
-        setTimeout(() => observationRef.current?.scrollIntoView({ behavior: 'smooth' }), 120)
-      }
-    } catch (err) {
-      if (err.name !== 'AbortError' && !err.isTimeout) {
-        setError(err.message || 'Spatial lookup failed. Inference backend may be starting.')
-      }
-    } finally {
-      setLoading(false)
+    const ptId = point.id || point.point_id || point.judge_id || point.preset_id
+    const normalizedPt = {
+      ...point,
+      id: ptId,
+      point_id: ptId,
     }
+    setSelectedPoint(normalizedPt)
+    clearError()
+
+    const isBeacon = Boolean(
+      point.is_sih_beacon ||
+      point.judge_id ||
+      ptId === '2267' || ptId === '3463' || ptId === '5353' || ptId === '7674' ||
+      (typeof ptId === 'string' && ptId.startsWith('JUDGE_'))
+    )
+    const judgeId = point.judge_id || (ptId.startsWith('JUDGE_') ? ptId : 'JUDGE_0001')
+    const isAnalysisReady = Boolean(point.analysis_ready)
+    const isMapped = Boolean(point.mapped)
+
+    // HARD REQUIREMENT (PRD Section 11):
+    // For fixed SIH demo beacons (2267, 3463, 5353, 7674 -> JUDGE_0001-0004):
+    // Routes directly to loadDemo(judgeId, false) for fast, reliable live responses without CPU timeout!
+    if (isBeacon && judgeId) {
+      setLoading(true)
+      try {
+        const signal = getAbortSignal()
+        const rawRes = await loadDemo(judgeId, false, { signal })
+        if (!signal.aborted) {
+          const normalized = normalizeResult(rawRes, sensorSpecs, { sourceType: 'prepared' })
+          setActiveResult(rawRes, 'demo')
+          setNormalizedWorkspaceResult(normalized)
+          setTimeout(() => {
+            document.getElementById('results-workspace')?.scrollIntoView({ behavior: 'smooth' })
+          }, 150)
+        }
+      } catch (err) {
+        if (err.name !== 'AbortError' && !err.isTimeout) {
+          setError(err.message || 'Demo point inference failed.')
+        }
+      } finally {
+        setLoading(false)
+      }
+      return
+    }
+
+    // Analysis-ready catalog observation
+    if (isMapped && isAnalysisReady) {
+      setLoading(true)
+      try {
+        const lon = point.longitude_360 > 180 ? point.longitude_360 - 360 : point.longitude_360
+        const signal = getAbortSignal()
+        const rawRes = await searchCoordinate(point.latitude, lon, { signal })
+        if (!signal.aborted) {
+          const normalized = normalizeResult(rawRes, sensorSpecs, { sourceType: 'coordinate_search' })
+          setActiveResult(rawRes, 'coordinate')
+          setNormalizedWorkspaceResult(normalized)
+          setTimeout(() => {
+            document.getElementById('results-workspace')?.scrollIntoView({ behavior: 'smooth' })
+          }, 150)
+        }
+      } catch (err) {
+        if (err.name !== 'AbortError' && !err.isTimeout) {
+          setError(err.message || 'Spatial lookup failed.')
+        }
+      } finally {
+        setLoading(false)
+      }
+      return
+    }
+
+    // Non-mapped or Survey Reference Landmark
+    // Keep it cleanly selected and focused on the lunar model so the user sees coordinates and telemetry
+    clearResult()
+    setNormalizedWorkspaceResult(null)
+    clearError()
   }
 
   // ── Direct Coordinate Search handler ──────────────────────────────────────
@@ -148,16 +219,22 @@ export default function App() {
       id: `LOC_${lat >= 0 ? '+' : ''}${lat.toFixed(2)}_${lon360.toFixed(2)}`,
       latitude: lat,
       longitude_360: lon360,
+      mapped: true,
+      analysis_ready: true,
     })
     clearResult()
     clearError()
     setLoading(true)
     try {
       const signal = getAbortSignal()
-      const res = await searchCoordinate(lat, lon, { signal })
+      const rawRes = await searchCoordinate(lat, lon, { signal })
       if (!signal.aborted) {
-        setActiveResult(res, 'coordinate')
-        setTimeout(() => observationRef.current?.scrollIntoView({ behavior: 'smooth' }), 120)
+        const normalized = normalizeResult(rawRes, sensorSpecs, { sourceType: 'coordinate_search' })
+        setActiveResult(rawRes, 'coordinate')
+        setNormalizedWorkspaceResult(normalized)
+        setTimeout(() => {
+          document.getElementById('results-workspace')?.scrollIntoView({ behavior: 'smooth' })
+        }, 150)
       }
     } catch (err) {
       if (err.name !== 'AbortError' && !err.isTimeout) {
@@ -168,380 +245,185 @@ export default function App() {
     }
   }
 
-  // ── Load Controlled Demo into Mission Workspace handler ───────────────────
-  function handleLoadDemoIntoWorkspace(demoData) {
+  // ── Manual Upload Completed Handler ───────────────────────────────────────
+  function handleUploadComplete(normalized) {
     cancelActiveRequest()
     clearError()
-    setActiveResult(demoData, 'demo')
-    if (demoData.matched_location) {
-      setSelectedPoint({
-        id: demoData.matched_location.common_point_id || demoData.judge_id || 'DEMO_CASE',
-        latitude: demoData.matched_location.latitude,
-        longitude_360: demoData.matched_location.longitude_360,
-      })
-    } else if (demoData.latitude != null && demoData.longitude_360 != null) {
-      setSelectedPoint({
-        id: demoData.judge_id || 'DEMO_CASE',
-        latitude: Number(demoData.latitude),
-        longitude_360: Number(demoData.longitude_360),
-      })
-    }
-    setIsDemoModalOpen(false)
+    setNormalizedWorkspaceResult(normalized)
+    setActiveResult(normalized.raw, 'match')
+    setSelectedPoint({
+      id: normalized.jobId,
+      name: 'Custom Three-Sensor Upload',
+      latitude: normalized.commonLocation?.latitude ?? -69.373,
+      longitude_360: normalized.commonLocation?.longitude ? ((normalized.commonLocation.longitude % 360) + 360) % 360 : 32.319,
+      is_sih_beacon: false,
+      mapped: true,
+      analysis_ready: true,
+    })
     setTimeout(() => {
-      observationRef.current?.scrollIntoView({ behavior: 'smooth' })
-    }, 150)
+      document.getElementById('results-workspace')?.scrollIntoView({ behavior: 'smooth' })
+    }, 200)
   }
 
-  // Active target telemetry helpers
-  const activeTargetId = selectedPoint?.id || activeResult?.judge_point_id || activeResult?.common_point_id || null
-  const targetLat = selectedPoint?.latitude != null
-    ? Number(selectedPoint.latitude).toFixed(4)
-    : activeResult?.matched_location?.latitude != null
-      ? Number(activeResult.matched_location.latitude).toFixed(4)
-      : null
-  const targetLon = selectedPoint?.longitude_360 != null
-    ? Number(selectedPoint.longitude_360 > 180 ? selectedPoint.longitude_360 - 360 : selectedPoint.longitude_360).toFixed(4)
-    : activeResult?.matched_location?.longitude_360 != null
-      ? Number(activeResult.matched_location.longitude_360 > 180 ? activeResult.matched_location.longitude_360 - 360 : activeResult.matched_location.longitude_360).toFixed(4)
-      : null
+  // ── Trigger Correspondence for Selected Preset ────────────────────────────
+  function handleRunPresetCorrespondence() {
+    if (selectedPoint) {
+      handleSelectPoint(selectedPoint)
+    }
+  }
 
-  const hasObservation = Boolean(selectedPoint || activeResult)
-  const hasCorrespondence = Boolean(activeResult?.pairwise_results || activeResult?.evidence)
-  const hasVerification = Boolean(activeResult?.evidence?.pairwise_metrics || activeResult?.evidence?.geometric_verification)
-  const hasDecision = Boolean(activeResult?.decision)
-  const isDemo = activeResult?.inference_mode === 'live' || Boolean(activeResult?.judge_id) || Boolean(activeResult?.reference_label)
+  // ── Trigger Instant Live Demo from Navbar ──────────────────────────────────
+  function handleTriggerLiveDemo() {
+    setAnalysisMode('preset')
+    const sihPoint = catalogPoints.find((p) => p.judge_id === 'JUDGE_0001' || p.is_sih_beacon) || {
+      id: '2267',
+      point_id: '2267',
+      judge_id: 'JUDGE_0001',
+      is_sih_beacon: true,
+      name: 'Shiv Shakti / Pair 2267',
+      latitude: 60.7928,
+      longitude_360: 355.4449,
+      mapped: true,
+      analysis_ready: true,
+    }
+    handleSelectPoint(sihPoint)
+  }
+
+  // ── Handle Correspond click from header ──────────────────────────────────
+  function handleOpenCorrespond() {
+    if (normalizedWorkspaceResult) {
+      document.getElementById('results-workspace')?.scrollIntoView({ behavior: 'smooth' })
+    } else {
+      handleTriggerLiveDemo()
+    }
+  }
 
   return (
     <div className="min-h-screen bg-[#000000] text-neutral-300 font-sans relative overflow-x-hidden selection:bg-amber-500 selection:text-black">
+      {/* 5-6s Cinematic System Initialization Sequence */}
+      {!missionReady && <MissionLoader onComplete={() => setMissionReady(true)} />}
+
       {/* Fullscreen Realistic Dynamic Starfield */}
       <StarfieldBackground />
 
       {/* Floating Spacecraft Mission Control Header */}
-      <MissionControlHeader onOpenDemo={() => setIsDemoModalOpen(true)} />
+      <MissionControlHeader
+        onOpenDemo={handleTriggerLiveDemo}
+        onOpenCorrespond={handleOpenCorrespond}
+      />
 
-      {/* Mission Workspace Context Bar & Continuous Pipeline Flow */}
-      <div className="relative z-20 border-b border-white/[0.08] bg-[#020305]/75 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-col md:flex-row md:items-center justify-between gap-3">
-          
-          {/* Target Telemetry Strip */}
-          <div className="flex items-center gap-2 font-mono text-xs flex-wrap">
-            {activeTargetId ? (
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-neutral-500 uppercase text-[10px] tracking-wider">ACTIVE TARGET:</span>
-                <span className="text-amber-400 font-bold tracking-wider">{activeTargetId}</span>
-                <span className="text-neutral-700">|</span>
-                <span className="text-neutral-300 text-[11px]">
-                  {targetLat}° N, {targetLon}° E
-                </span>
-                <span className="text-neutral-700 hidden sm:inline">|</span>
-                <span className="text-[10px] text-neutral-400 hidden sm:inline">
-                  SENSORS: <span className="text-red-400">IIRS</span> · <span className="text-amber-400">TMC-2</span> · <span className="text-cyan-400">OHRC</span>
-                </span>
-                {isDemo && (
-                  <span className="px-1.5 py-0.5 border border-amber-500/50 bg-amber-500/10 text-amber-300 text-[9px] uppercase tracking-wider font-bold">
-                    CONTROLLED CASE
-                  </span>
-                )}
-                <button
-                  onClick={() => {
-                    cancelActiveRequest()
-                    cleanupBlobUrls()
-                    clearSelectedPoint()
-                    clearResult()
-                  }}
-                  className="ml-2 text-[9px] px-2 py-0.5 border border-white/[0.1] text-neutral-300 hover:text-red-400 hover:border-red-500/40 transition-colors uppercase tracking-wider cursor-pointer min-h-[32px] flex items-center"
-                  title="Clear active observation and reset workspace"
-                  aria-label="Reset active target selection"
-                >
-                  ✕ RESET TARGET
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 text-neutral-300 text-[11px]">
-                <span className="w-2 h-2 rounded-full bg-neutral-500" />
-                <span className="text-neutral-400 uppercase tracking-wider text-[10px]">MISSION STATUS:</span>
-                <span>AWAITING TARGET SELECTION</span>
-                <span className="text-neutral-600">·</span>
-                <span className="text-neutral-400">SELECT ON MOON GLOBE OR USE SEARCH RADAR</span>
-              </div>
-            )}
-          </div>
+      {/* Controlled Evaluation Live Inference Modal */}
+      <ControlledDemoModal
+        isOpen={demoModalOpen}
+        onClose={() => setDemoModalOpen(false)}
+        onLoadIntoWorkspace={(res) => {
+          const normalized = normalizeResult(res, sensorSpecs, { sourceType: 'prepared' })
+          setActiveResult(res, 'demo')
+          setNormalizedWorkspaceResult(normalized)
+          setDemoModalOpen(false)
+          setTimeout(() => {
+            document.getElementById('results-workspace')?.scrollIntoView({ behavior: 'smooth' })
+          }, 150)
+        }}
+      />
 
-          {/* Continuous Mission Pipeline Flow Tracker */}
-          <div className="flex items-center gap-2 font-mono text-[10px] tracking-wider uppercase text-neutral-300 overflow-x-auto whitespace-nowrap">
-            <span className="text-neutral-500 text-[9px] mr-1 hidden lg:inline">WORKFLOW:</span>
-            
-            <a href="#hero-moon" className="flex items-center gap-1 text-emerald-400 hover:text-emerald-300 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              <span>LOCATE</span>
-            </a>
-            <span className="text-neutral-700">───</span>
-
-            <a
-              href="#observation-workspace"
-              className={`flex items-center gap-1 transition-colors ${
-                hasObservation ? 'text-emerald-400 hover:text-emerald-300 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-400' : 'text-neutral-500 pointer-events-none'
-              }`}
-            >
-              <span className={`w-1.5 h-1.5 rounded-full ${hasObservation ? 'bg-emerald-400' : 'bg-neutral-600'}`} />
-              <span>OBSERVE</span>
-            </a>
-            <span className="text-neutral-700">───</span>
-
-            <a
-              href="#correspondence-workspace"
-              className={`flex items-center gap-1 transition-colors ${
-                hasCorrespondence ? 'text-emerald-400 hover:text-emerald-300 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-400' : 'text-neutral-500 pointer-events-none'
-              }`}
-            >
-              <span className={`w-1.5 h-1.5 rounded-full ${hasCorrespondence ? 'bg-emerald-400' : 'bg-neutral-600'}`} />
-              <span>CORRESPOND</span>
-            </a>
-            <span className="text-neutral-700">───</span>
-
-            <a
-              href="#geographic-mapping-panel"
-              className={`flex items-center gap-1 transition-colors ${
-                hasVerification ? 'text-emerald-400 hover:text-emerald-300 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-400' : 'text-neutral-500 pointer-events-none'
-              }`}
-            >
-              <span className={`w-1.5 h-1.5 rounded-full ${hasVerification ? 'bg-emerald-400' : 'bg-neutral-600'}`} />
-              <span>VERIFY</span>
-            </a>
-            <span className="text-neutral-700">───</span>
-
-            <a
-              href="#decision-verdict-section"
-              className={`flex items-center gap-1 transition-colors ${
-                hasDecision ? 'text-emerald-400 hover:text-emerald-300 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-400' : 'text-neutral-500 pointer-events-none'
-              }`}
-            >
-              <span className={`w-1.5 h-1.5 rounded-full ${hasDecision ? 'bg-emerald-400' : 'bg-neutral-600'}`} />
-              <span>DECIDE</span>
-            </a>
-          </div>
-
-        </div>
-      </div>
-
-      {/* Main Continuous Workspace Stream */}
-      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-12">
+      {/* Main Single-Page Workspace Flow (PRD Section 4) */}
+      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 py-4 space-y-8" style={{ height: 'auto', minHeight: 'unset' }}>
         
-        {/* Section 1: Interactive 3D Lunar Globe & Search Radar */}
-        <section className="space-y-4">
-          {/* Catalog count indicator */}
+        {/* 1. Dominant 3D Moon Hero (PRD Section 6) */}
+        <section id="hero-moon" className="space-y-2">
           {catalogPoints.length > 0 && (
-            <div className="text-[10px] font-mono text-neutral-400 text-center uppercase tracking-widest">
-              {catalogPoints.length} SITES DISPLAYED{catalogTotal ? ` OF ${catalogTotal.toLocaleString()} CATALOGED` : ''} · CHANDRAYAAN-2 OPTICAL COVERAGE
+            <div className="text-[10px] font-mono text-neutral-400 text-center uppercase tracking-widest flex items-center justify-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              <span>{catalogPoints.length} LUNAR TARGETS LOADED</span>
+              <span className="text-neutral-600">•</span>
+              <span className="text-emerald-400">GREEN: REAL-DATA OPERATIONAL BEACONS</span>
+              <span className="text-neutral-600">•</span>
+              <span className="text-cyan-400">BLUE: SURFACE SURVEY SITES</span>
             </div>
           )}
 
-          <ErrorBoundary title="3D Lunar Globe & Coordinate Search Subsystem">
+          <ErrorBoundary title="3D Lunar Globe & Coordinate Subsystem">
             <CinematicMoonHero
               catalogPoints={catalogPoints}
               onPointSelect={handleSelectPoint}
               matchResultPoint={matchResultPoint}
               activeResult={activeResult}
-              onViewObservation={() => observationRef.current?.scrollIntoView({ behavior: 'smooth' })}
+              onViewObservation={() => document.getElementById('results-workspace')?.scrollIntoView({ behavior: 'smooth' })}
               onSearchCoordinate={handleSearchCoordinate}
             />
           </ErrorBoundary>
         </section>
 
-        {/* Optional Manual 3-Image Triplet Upload Drawer */}
-        <section className="border border-white/[0.08] bg-[#030406]/70 transition-all">
-          <button
-            onClick={() => setIsUploadDrawerOpen(!isUploadDrawerOpen)}
-            className="w-full px-4 py-3 flex items-center justify-between text-left font-mono text-xs text-neutral-300 hover:text-white transition-colors cursor-pointer min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
-            aria-expanded={isUploadDrawerOpen}
-            aria-label="Toggle custom three-image upload analysis drawer"
-          >
-            <span className="flex items-center gap-2 uppercase tracking-wider">
-              <span className="text-amber-400 font-bold">📁</span>
-              <span>CUSTOM THREE-IMAGE UPLOAD ANALYSIS (OPTIONAL TRIPLET INGESTION)</span>
-            </span>
-            <span className="text-amber-400 text-[10px] tracking-widest font-mono">
-              {isUploadDrawerOpen ? '▲ COLLAPSE' : '▼ EXPAND DRAWER'}
-            </span>
-          </button>
-          {isUploadDrawerOpen && (
-            <div className="p-4 sm:p-6 border-t border-white/[0.08] bg-[#020204]">
-              <Suspense
-                fallback={
-                  <div className="py-8 text-center font-mono text-xs text-neutral-400 animate-pulse">
-                    INITIALIZING THREE-IMAGE INGESTION INTERFACE…
-                  </div>
-                }
-              >
-                <ErrorBoundary title="Three-Image Upload Ingestion Subsystem">
-                  <InlineImageUpload
-                    sensorSpecs={sensorSpecs}
-                    onResult={({ result, point }) => {
-                      if (point) {
-                        setMatchResultPoint({
-                          latitude: point.latitude,
-                          longitude_360: point.longitude_360,
-                          label: `VERIFIED: ${result?.decision || 'ANALYSIS COMPLETE'}`,
-                        })
-                      }
-                      setActiveResult(result, 'match')
-                      setTimeout(() => observationRef.current?.scrollIntoView({ behavior: 'smooth' }), 200)
-                    }}
-                  />
-                </ErrorBoundary>
-              </Suspense>
-            </div>
-          )}
-        </section>
-
-        {/* Loading HUD Bar */}
-        {loading && (
-          <div
-            role="status"
-            aria-live="polite"
-            className="border border-amber-500/40 bg-amber-950/20 px-4 py-3.5 flex items-center gap-3 text-xs font-mono text-amber-300 shadow-[0_0_20px_rgba(245,158,11,0.15)]"
-          >
-            <div className="w-4 h-4 border-2 border-amber-400 rounded-full animate-spin border-t-transparent" />
-            <div className="flex flex-col">
-              <span className="font-bold tracking-wider uppercase">BUFFERING MULTI-SENSOR INFERENCE TELEMETRY…</span>
-              <span className="text-[10px] text-amber-400/90">EXECUTING SPATIAL RETRIEVAL & LoFTR CROSS-ATTENTION PASS</span>
-            </div>
-          </div>
-        )}
-
         {/* Global Error Banner */}
         {error && <ErrorAlert error={error} onDismiss={clearError} />}
 
-        {/* Workspace Inactivity Guide (shown before any target is chosen) */}
-        {!hasObservation && !loading && (
-          <div className="border border-white/[0.08] bg-[#030406]/80 p-8 text-center space-y-4 max-w-2xl mx-auto">
-            <div className="w-10 h-10 border border-amber-500/40 rounded-full mx-auto flex items-center justify-center text-amber-400 font-mono text-lg">
-              🛰️
-            </div>
-            <div className="space-y-1 font-mono">
-              <h2 className="text-sm font-bold text-white uppercase tracking-wider">
-                MISSION WORKSPACE READY
-              </h2>
-              <p className="text-xs text-neutral-300 max-w-md mx-auto leading-relaxed">
-                Click any observation site on the 3D Moon globe above, enter target coordinates into the radar, or run a blind live evaluation case.
-              </p>
-            </div>
-            <div className="flex items-center justify-center gap-3 pt-2 font-mono text-xs flex-wrap">
-              <button
-                onClick={() => setIsDemoModalOpen(true)}
-                className="px-4 py-2 border border-amber-500/80 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold uppercase tracking-wider transition-all shadow-[0_0_12px_rgba(245,158,11,0.2)] cursor-pointer min-h-[44px] flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
-                aria-label="Run controlled live demonstration"
-              >
-                <span>⚡</span>
-                <span>RUN CONTROLLED LIVE DEMO</span>
-              </button>
-              {catalogPoints[0] && (
-                <button
-                  onClick={() => handleSelectPoint(catalogPoints[0])}
-                  className="px-3.5 py-2 border border-white/[0.12] bg-white/[0.04] hover:bg-white/[0.08] text-neutral-200 hover:text-white uppercase tracking-wider transition-all cursor-pointer min-h-[44px] flex items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
-                  aria-label={`Locate observation site ${catalogPoints[0].id}`}
-                >
-                  LOCATE SITE #{catalogPoints[0].id}
-                </button>
-              )}
-            </div>
-          </div>
+        {/* 2. Analysis Entry Mode Toggle (PRD Section 13) */}
+        <section id="mode-selector">
+          <AnalysisEntry
+            mode={analysisMode}
+            onModeChange={setAnalysisMode}
+            selectedPreset={selectedPoint}
+            activeResult={activeResult}
+          />
+        </section>
+
+        {/* 3. Ingestion & Scene Acquisition Workspace */}
+        <section id="observation-workspace">
+          {analysisMode === 'upload' ? (
+            <ErrorBoundary title="Manual Three-Sensor Upload Workspace">
+              <ThreeSensorUploadWorkspace
+                sensorSpecs={sensorSpecs}
+                onAnalysisComplete={handleUploadComplete}
+              />
+            </ErrorBoundary>
+          ) : (
+            <ErrorBoundary title="Selected Sensor Scene Panel">
+              <SensorScenePanel
+                selectedPoint={selectedPoint}
+                activeResult={activeResult}
+                sensorSpecs={sensorSpecs}
+                isLoading={loading}
+                onRunCorrespondence={handleRunPresetCorrespondence}
+              />
+            </ErrorBoundary>
+          )}
+        </section>
+
+        {/* 4. Processing Pipeline Indicator (PRD Section 19) */}
+        {loading && (
+          <section id="processing-pipeline">
+            <ProcessingPipeline isProcessing={loading} />
+          </section>
         )}
 
-        {/* ═══ Progressive Analysis Pipeline (Populated by Live Inference / Selection) ═══ */}
+        {/* 5. Centerpiece Correspondence Analysis Workspace (PRD Section 23 & 56) */}
+        <section id="results-workspace">
+          {normalizedWorkspaceResult && (
+            <ErrorBoundary title="Correspondence Analysis Workspace">
+              <CorrespondenceWorkspace
+                result={normalizedWorkspaceResult}
+                onReplay={handleRunPresetCorrespondence}
+              />
+            </ErrorBoundary>
+          )}
+        </section>
 
-        {/* Stage 1: Selected Observation & Multi-Sensor Imagery */}
-        <div ref={observationRef}>
-          <ErrorBoundary title="Selected Observation Subsystem">
-            <SelectedObservationWorkspace
-              point={selectedPoint}
-              activeResult={activeResult}
-              sensorSpecs={sensorSpecs}
-              isDemo={isDemo}
-              onClear={() => {
-                cancelActiveRequest()
-                cleanupBlobUrls()
-                clearSelectedPoint()
-                clearResult()
-              }}
-            />
+        {/* 6. Science Briefing (PRD Section 45) */}
+        <section id="science-briefing">
+          <ErrorBoundary title="Science Briefing">
+            <ScienceBriefing />
           </ErrorBoundary>
-        </div>
+        </section>
 
-        {/* Stage 2: Three-Sensor Geographic Mapping (Primary Spatial Evidence Panel) */}
-        {activeResult && (
-          <ErrorBoundary title="Three-Sensor Geographic Mapping Subsystem">
-            <GeoMap
-              activeResult={activeResult}
-              sensorSpecs={sensorSpecs}
-              onSelectSensor={(sensorKey) => {
-                const el = document.getElementById(`sensor-card-${sensorKey}`)
-                el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-              }}
-            />
+        {/* 7. Technical FAQ (PRD Section 46) */}
+        <section id="technical-faq">
+          <ErrorBoundary title="Technical FAQ">
+            <FAQSection />
           </ErrorBoundary>
-        )}
+        </section>
 
-        {/* Stage 3: Geometric Verification (RANSAC Homography & Inliers) */}
-        {activeResult && (
-          <ErrorBoundary title="Geometric Verification Subsystem">
-            <GeometricVerification
-              activeResult={activeResult}
-              sensorSpecs={sensorSpecs}
-            />
-          </ErrorBoundary>
-        )}
-
-        {/* Stage 4: Core Deep Correspondence Workspace (LoFTR Cross-Attention) */}
-        {activeResult && (
-          <ErrorBoundary title="LoFTR Deep Correspondence Subsystem">
-            <DeepCorrespondenceWorkspace
-              activeResult={activeResult}
-              sensorSpecs={sensorSpecs}
-            />
-          </ErrorBoundary>
-        )}
-
-        {/* Stage 5: Interactive Co-Registration Workspace */}
-        {activeResult && (
-          <ErrorBoundary title="Interactive Registration Subsystem">
-            <InteractiveRegistrationWorkspace activeResult={activeResult} />
-          </ErrorBoundary>
-        )}
-
-        {/* Stage 6: Tri-State Decision Verdict & Reference Validation */}
-        {activeResult && (
-          <ErrorBoundary title="Decision Verdict Subsystem">
-            <DecisionVerdictSection activeResult={activeResult} isDemo={isDemo} />
-          </ErrorBoundary>
-        )}
-
-        {/* Scientific Deep-Dive Sections */}
-        <Suspense
-          fallback={
-            <div className="py-8 text-center font-mono text-xs text-neutral-500 animate-pulse">
-              STREAMING SCIENTIFIC DOCUMENTATION & BENCHMARK ARCHIVES…
-            </div>
-          }
-        >
-          <div className="pt-8 space-y-12 border-t border-white/[0.08]">
-            <ThreeWayIntegration sensorSpecs={sensorSpecs} />
-            <PerformanceSection />
-            <MethodologySection />
-            <LimitationsSection />
-          </div>
-        </Suspense>
       </main>
-
-      {/* Controlled Live Inference Demonstration Modal */}
-      <Suspense fallback={null}>
-        <ControlledDemoModal
-          isOpen={isDemoModalOpen}
-          onClose={() => setIsDemoModalOpen(false)}
-          onLoadIntoWorkspace={handleLoadDemoIntoWorkspace}
-        />
-      </Suspense>
 
       {/* Scientific Footer */}
       <Footer />

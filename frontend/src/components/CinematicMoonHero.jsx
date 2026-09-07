@@ -52,10 +52,10 @@ function clearGroup(group) {
 }
 
 // Local textures served from /public (100% equirectangular 2:1 cylindrical maps)
-const MOON_COLOR_PRIMARY  = '/moon_color.jpg'
-const MOON_BUMP_PRIMARY   = '/moon_bump.jpg'
+const MOON_COLOR_PRIMARY = '/moon_color.jpg'
+const MOON_BUMP_PRIMARY = '/moon_bump.jpg'
 const MOON_COLOR_FALLBACK = 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/moon_1024.jpg'
-const MOON_BUMP_FALLBACK  = 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/moon_1024.jpg'
+const MOON_BUMP_FALLBACK = 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/moon_1024.jpg'
 
 function loadTextureWithFallback(primary, fallback) {
   return new Promise((resolve) => {
@@ -87,24 +87,24 @@ export default function CinematicMoonHero({
   onViewObservation,
   onSearchCoordinate,
 }) {
-  const mountRef        = useRef(null)
-  const rendererRef     = useRef(null)
-  const sceneRef        = useRef(null)
-  const cameraRef       = useRef(null)
-  const animRef         = useRef(null)
-  const moonRef         = useRef(null)
+  const mountRef = useRef(null)
+  const rendererRef = useRef(null)
+  const sceneRef = useRef(null)
+  const cameraRef = useRef(null)
+  const animRef = useRef(null)
+  const moonRef = useRef(null)
   const markersGroupRef = useRef(null)
-  const pathGroupRef    = useRef(null)
-  const resultGroupRef  = useRef(null)
-  const gridGroupRef    = useRef(null)
+  const pathGroupRef = useRef(null)
+  const resultGroupRef = useRef(null)
+  const gridGroupRef = useRef(null)
 
-  const isDragging      = useRef(false)
-  const lastMouse       = useRef({ x: 0, y: 0 })
-  const autoRotate      = useRef(true)
+  const isDragging = useRef(false)
+  const lastMouse = useRef({ x: 0, y: 0 })
+  const autoRotate = useRef(true)
 
   // Smooth camera animation targets
-  const targetRotation  = useRef(null)
-  const targetCameraZ   = useRef(3.6)
+  const targetRotation = useRef(null)
+  const targetCameraZ = useRef(3.6)
 
   const [isRotating, setIsRotating] = useState(true)
   const [texLoading, setTexLoading] = useState(true)
@@ -138,7 +138,7 @@ export default function CinematicMoonHero({
     const container = mountRef.current
     if (!container) return
 
-    const W = container.clientWidth  || 900
+    const W = container.clientWidth || 900
     const H = container.clientHeight || 680
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false })
@@ -245,7 +245,7 @@ export default function CinematicMoonHero({
     // Load real textures async
     Promise.all([
       loadTextureWithFallback(MOON_COLOR_PRIMARY, MOON_COLOR_FALLBACK),
-      loadTextureWithFallback(MOON_BUMP_PRIMARY,  MOON_BUMP_FALLBACK),
+      loadTextureWithFallback(MOON_BUMP_PRIMARY, MOON_BUMP_FALLBACK),
     ]).then(([colorTex, bumpTex]) => {
       if (!moonRef.current) return
       if (colorTex) {
@@ -261,7 +261,7 @@ export default function CinematicMoonHero({
 
       const mat = new THREE.MeshStandardMaterial({
         ...(colorTex ? { map: colorTex, emissiveMap: colorTex } : { color: 0x33363a }),
-        ...(bumpTex  ? { bumpMap: bumpTex, bumpScale: 0.0028 } : {}),
+        ...(bumpTex ? { bumpMap: bumpTex, bumpScale: 0.0028 } : {}),
         roughness: 0.90,
         metalness: 0.0,
         emissive: colorTex ? new THREE.Color(0x111216) : new THREE.Color(0x0a0b0d),
@@ -276,7 +276,7 @@ export default function CinematicMoonHero({
     const clock = new THREE.Clock()
     const animate = () => {
       animRef.current = requestAnimationFrame(animate)
-      const t  = clock.getElapsedTime()
+      const t = clock.getElapsedTime()
       const dt = clock.getDelta()
 
       // Auto-rotation in world space (visible, smooth cinematic spin)
@@ -289,7 +289,7 @@ export default function CinematicMoonHero({
         moon.rotation.y += (targetRotation.current.y - moon.rotation.y) * 0.08
         moon.rotation.x += (targetRotation.current.x - moon.rotation.x) * 0.08
         if (Math.abs(targetRotation.current.y - moon.rotation.y) < 0.005 &&
-            Math.abs(targetRotation.current.x - moon.rotation.x) < 0.005) {
+          Math.abs(targetRotation.current.x - moon.rotation.x) < 0.005) {
           targetRotation.current = null
         }
       }
@@ -417,9 +417,9 @@ export default function CinematicMoonHero({
       { id: 'SPA_BASIN', name: 'South Pole-Aitken Center', latitude: -53.000, longitude_360: 169.000, region: 'Farside Giant Impact Basin', three_sensor_common: true },
     ]
 
-    // Distributed global Fibonacci sphere lattice (~90 points across all latitudes & longitudes)
+    // Distributed global Fibonacci sphere lattice (~14 decorative lunar surface beacons in electric blue)
     const gridPoints = []
-    const totalGrid = 90
+    const totalGrid = 14
     const phiAngle = Math.PI * (3 - Math.sqrt(5)) // golden angle
 
     for (let i = 0; i < totalGrid; i++) {
@@ -431,20 +431,21 @@ export default function CinematicMoonHero({
       const lon = (Math.atan2(Math.sin(theta) * radiusAtY, Math.cos(theta) * radiusAtY) * (180 / Math.PI) + 360) % 360
 
       gridPoints.push({
-        id: `GLOB_SURVEY_${String(i + 1).padStart(3, '0')}`,
-        name: `Chandrayaan Survey Station #${i + 1}`,
+        id: `LUNAR_GRID_${String(i + 1).padStart(3, '0')}`,
+        name: `Lunar Surface Coordinate Grid #${i + 1}`,
         latitude: parseFloat(lat.toFixed(4)),
         longitude_360: parseFloat(lon.toFixed(4)),
-        region: `Global Lunar Quadrant ${lat >= 0 ? 'North' : 'South'}`,
-        three_sensor_common: true,
-        isGlobalGrid: true,
+        region: `Lunar Sector ${lat >= 0 ? 'North' : 'South'}`,
+        isDecorative: true,
+        mapped: false,
+        analysis_ready: false,
       })
     }
 
     return [...landmarks, ...gridPoints]
   }, [])
 
-  // ── Render Markers: Catalog + Global Sites + Active Target ──────────────────
+  // ── Render Markers: Green Working Targets + Blue Decorative Array ───────────
   useEffect(() => {
     const group = markersGroupRef.current
     if (!group) return
@@ -453,7 +454,7 @@ export default function CinematicMoonHero({
     let count = 0
     const activeTarget = searchedCoord || selectedPoint
 
-    // Mode A: TARGET ONLY (Section 4 & 15)
+    // Mode A: TARGET ONLY
     if (filterMode === 'target') {
       if (showTarget && activeTarget) {
         renderTargetMarker(group, activeTarget)
@@ -463,9 +464,9 @@ export default function CinematicMoonHero({
       return
     }
 
-    // Combine local catalog points with global lunar points (avoiding duplicate IDs)
+    // Combine local catalog points with global lunar points
     const allDisplayPoints = [...catalogPoints]
-    const existingIds = new Set(catalogPoints.map((p) => p.id))
+    const existingIds = new Set(catalogPoints.map((p) => p.id || p.point_id))
     globalSurveyPoints.forEach((gp) => {
       if (!existingIds.has(gp.id)) {
         allDisplayPoints.push(gp)
@@ -475,83 +476,93 @@ export default function CinematicMoonHero({
     // Mode B: ALL SITES (Default)
     if (showCatalogSites && allDisplayPoints.length > 0) {
       allDisplayPoints.forEach((pt) => {
-        const isSelected = selectedPoint?.id === pt.id
+        const isSelected = (selectedPoint?.id && selectedPoint.id === pt.id) ||
+          (selectedPoint?.point_id && selectedPoint.point_id === pt.point_id) ||
+          (selectedPoint?.judge_id && selectedPoint.judge_id === pt.judge_id)
 
-        // If this point is the selected point, render with distinct prominent treatment
+        // If this point is selected, render with distinct prominent treatment
         if (isSelected) {
           renderSelectedMarker(group, pt)
           count++
           return
         }
 
-        // Standard catalog point (clearly visible, luminous navigational beacon)
+        // STRICT REAL DATA REQUIREMENT:
+        // ONLY the four SIH demo targets with pre-packaged 3-sensor data are green.
+        // ALL OTHER SITES MUST BE BLUE.
+        const hasRealData = Boolean(
+          pt.judge_id === 'JUDGE_0001' ||
+          pt.judge_id === 'JUDGE_0002' ||
+          pt.judge_id === 'JUDGE_0003' ||
+          pt.judge_id === 'JUDGE_0004' ||
+          pt.id === '2267' || pt.point_id === '2267' ||
+          pt.id === '3463' || pt.point_id === '3463' ||
+          pt.id === '5353' || pt.point_id === '5353' ||
+          pt.id === '7674' || pt.point_id === '7674' ||
+          (pt.is_sih_beacon && Boolean(pt.judge_id))
+        )
+        const isHovered = (hoveredPoint?.id && hoveredPoint.id === pt.id) ||
+          (hoveredPoint?.point_id && hoveredPoint.point_id === pt.point_id)
         const pos = latLon360ToXYZ(pt.latitude, pt.longitude_360, 1.012)
-        const isHovered = hoveredPoint?.id === pt.id
-        const isGlobal = pt.isGlobalGrid
 
-        // Solid core sphere marker (~0.007 radius)
-        const dotColor = pt.id.startsWith('ISRO')
-          ? 0x10b981 // Emerald for ISRO Shiv Shakti / Tiranga / Jawahar
-          : isGlobal
-          ? 0x38bdf8 // Cyan for Global survey grid points
-          : pt.three_sensor_common
-          ? 0x00f0ff
-          : 0xfbbf24
+        // 1. SITES WITH REAL MULTI-SENSOR DATA: VIBRANT EMERALD GREEN
+        if (hasRealData) {
+          const dot = new THREE.Mesh(
+            new THREE.SphereGeometry(isHovered ? 0.015 : 0.011, 16, 16),
+            new THREE.MeshBasicMaterial({ color: 0x10b981 })
+          )
+          dot.position.copy(pos)
+          dot.userData = { point: pt, isWorking: true }
+          group.add(dot)
 
+          const ring = new THREE.Mesh(
+            new THREE.RingGeometry(0.012, 0.021, 24),
+            new THREE.MeshBasicMaterial({
+              color: 0x22c55e,
+              transparent: true,
+              opacity: isHovered ? 1.0 : 0.85,
+              side: THREE.DoubleSide,
+            })
+          )
+          ring.lookAt(pos.clone().multiplyScalar(2))
+          ring.position.copy(pos)
+          ring.userData = { point: pt, isPulseRing: true, phaseOffset: 0, isWorking: true }
+          group.add(ring)
+          count++
+          return
+        }
+
+        // 2. ALL OTHER SITES: LUMINOUS SPACE BLUE (UI REFERENCE)
         const dot = new THREE.Mesh(
-          new THREE.SphereGeometry(isHovered ? 0.013 : isGlobal ? 0.006 : 0.008, 12, 12),
+          new THREE.SphereGeometry(isHovered ? 0.009 : 0.0055, 10, 10),
           new THREE.MeshBasicMaterial({
-            color: dotColor,
-            transparent: false,
+            color: 0x38bdf8, // Electric space blue
+            transparent: true,
+            opacity: 0.85,
           })
         )
         dot.position.copy(pos)
-        dot.userData = { point: pt }
+        dot.userData = { point: pt, isWorking: false }
         group.add(dot)
 
-        // Outer beacon halo ring for high contrast against lunar craters
-        const ringColor = pt.id.startsWith('ISRO')
-          ? 0x34d399
-          : isGlobal
-          ? 0x0284c7
-          : pt.three_sensor_common
-          ? 0x00f0ff
-          : 0xf59e0b
-
         const ring = new THREE.Mesh(
-          new THREE.RingGeometry(isGlobal ? 0.007 : 0.009, isGlobal ? 0.012 : 0.016, 16),
+          new THREE.RingGeometry(0.007, 0.011, 16),
           new THREE.MeshBasicMaterial({
-            color: ringColor,
+            color: 0x0284c7, // Sky blue halo
             transparent: true,
-            opacity: isHovered ? 1.0 : isGlobal ? 0.45 : 0.7,
+            opacity: isHovered ? 0.8 : 0.45,
             side: THREE.DoubleSide,
           })
         )
         ring.lookAt(pos.clone().multiplyScalar(2))
         ring.position.copy(pos)
-        ring.userData = { point: pt }
+        ring.userData = { point: pt, isWorking: false }
         group.add(ring)
         count++
-
-        if (isHovered) {
-          const halo = new THREE.Mesh(
-            new THREE.RingGeometry(0.016, 0.024, 24),
-            new THREE.MeshBasicMaterial({
-              color: 0x38bdf8,
-              transparent: true,
-              opacity: 0.95,
-              side: THREE.DoubleSide,
-            })
-          )
-          halo.lookAt(pos.clone().multiplyScalar(2))
-          halo.position.copy(pos)
-          halo.userData = { point: pt }
-          group.add(halo)
-        }
       })
     }
 
-    // If an external coordinate was searched and target layer is enabled, render target beacon
+    // If an external coordinate was searched, render target beacon
     if (showTarget && searchedCoord && filterMode === 'all') {
       renderTargetMarker(group, searchedCoord)
       count++
@@ -563,30 +574,45 @@ export default function CinematicMoonHero({
   // Helper: Render selected catalog point
   function renderSelectedMarker(group, pt) {
     const pos = latLon360ToXYZ(pt.latitude, pt.longitude_360, 1.018)
+    const hasRealData = Boolean(
+      pt.judge_id === 'JUDGE_0001' ||
+      pt.judge_id === 'JUDGE_0002' ||
+      pt.judge_id === 'JUDGE_0003' ||
+      pt.judge_id === 'JUDGE_0004' ||
+      pt.id === '2267' || pt.point_id === '2267' ||
+      pt.id === '3463' || pt.point_id === '3463' ||
+      pt.id === '5353' || pt.point_id === '5353' ||
+      pt.id === '7674' || pt.point_id === '7674' ||
+      (pt.is_sih_beacon && Boolean(pt.judge_id))
+    )
+
+    const coreColor = hasRealData ? 0x10b981 : 0x38bdf8
+    const ringColor1 = hasRealData ? 0x4ade80 : 0x38bdf8
+    const ringColor2 = hasRealData ? 0x10b981 : 0x0284c7
 
     const core = new THREE.Mesh(
       new THREE.SphereGeometry(0.015, 16, 16),
-      new THREE.MeshBasicMaterial({ color: 0x10b981 })
+      new THREE.MeshBasicMaterial({ color: coreColor })
     )
     core.position.copy(pos)
-    core.userData = { point: pt }
+    core.userData = { point: pt, isWorking: hasRealData }
     group.add(core)
 
-    ;[0.025, 0.045].forEach((radius, idx) => {
-      const ring = new THREE.Mesh(
-        new THREE.RingGeometry(radius, radius + 0.005, 32),
-        new THREE.MeshBasicMaterial({
-          color: idx === 0 ? 0x4ade80 : 0x10b981,
-          transparent: true,
-          opacity: 0.9 - idx * 0.3,
-          side: THREE.DoubleSide,
-        })
-      )
-      ring.lookAt(pos.clone().multiplyScalar(2))
-      ring.position.copy(pos)
-      ring.userData = { isPulseRing: true, phaseOffset: idx * 0.5 }
-      group.add(ring)
-    })
+      ;[0.025, 0.045].forEach((radius, idx) => {
+        const ring = new THREE.Mesh(
+          new THREE.RingGeometry(radius, radius + 0.005, 32),
+          new THREE.MeshBasicMaterial({
+            color: idx === 0 ? ringColor1 : ringColor2,
+            transparent: true,
+            opacity: 0.9 - idx * 0.3,
+            side: THREE.DoubleSide,
+          })
+        )
+        ring.lookAt(pos.clone().multiplyScalar(2))
+        ring.position.copy(pos)
+        ring.userData = { isPulseRing: true, phaseOffset: idx * 0.5, isWorking: hasRealData }
+        group.add(ring)
+      })
   }
 
   // Helper: Render searched target coordinate beacon
@@ -601,21 +627,21 @@ export default function CinematicMoonHero({
     core.userData = { point: pt, isTarget: true }
     group.add(core)
 
-    ;[0.028, 0.052].forEach((radius, idx) => {
-      const ring = new THREE.Mesh(
-        new THREE.RingGeometry(radius, radius + 0.005, 32),
-        new THREE.MeshBasicMaterial({
-          color: idx === 0 ? 0x86efac : 0x22c55e,
-          transparent: true,
-          opacity: 0.9 - idx * 0.3,
-          side: THREE.DoubleSide,
-        })
-      )
-      ring.lookAt(pos.clone().multiplyScalar(2))
-      ring.position.copy(pos)
-      ring.userData = { isPulseRing: true, phaseOffset: idx * 0.5 }
-      group.add(ring)
-    })
+      ;[0.028, 0.052].forEach((radius, idx) => {
+        const ring = new THREE.Mesh(
+          new THREE.RingGeometry(radius, radius + 0.005, 32),
+          new THREE.MeshBasicMaterial({
+            color: idx === 0 ? 0x86efac : 0x22c55e,
+            transparent: true,
+            opacity: 0.9 - idx * 0.3,
+            side: THREE.DoubleSide,
+          })
+        )
+        ring.lookAt(pos.clone().multiplyScalar(2))
+        ring.position.copy(pos)
+        ring.userData = { isPulseRing: true, phaseOffset: idx * 0.5 }
+        group.add(ring)
+      })
   }
 
   // ── Render Three-Sensor Observation Association Path on Lunar Surface ────────
@@ -681,16 +707,16 @@ export default function CinematicMoonHero({
 
     const pos = latLon360ToXYZ(matchResultPoint.latitude, matchResultPoint.longitude_360, 1.028)
 
-    ;[0.038, 0.06].forEach((pr, i) => {
-      const m = new THREE.Mesh(
-        new THREE.RingGeometry(pr, pr + 0.006, 32),
-        new THREE.MeshBasicMaterial({ color: 0x22c55e, transparent: true, opacity: 0.6, side: THREE.DoubleSide })
-      )
-      m.lookAt(pos.clone().multiplyScalar(2))
-      m.position.copy(pos)
-      m.userData = { isPulse: true, phaseOffset: i * Math.PI * 0.5 }
-      rg.add(m)
-    })
+      ;[0.038, 0.06].forEach((pr, i) => {
+        const m = new THREE.Mesh(
+          new THREE.RingGeometry(pr, pr + 0.006, 32),
+          new THREE.MeshBasicMaterial({ color: 0x22c55e, transparent: true, opacity: 0.6, side: THREE.DoubleSide })
+        )
+        m.lookAt(pos.clone().multiplyScalar(2))
+        m.position.copy(pos)
+        m.userData = { isPulse: true, phaseOffset: i * Math.PI * 0.5 }
+        rg.add(m)
+      })
 
     const core = new THREE.Mesh(
       new THREE.SphereGeometry(0.018, 12, 12),
@@ -796,12 +822,12 @@ export default function CinematicMoonHero({
       }
     }
 
-    // 2. Check click on catalog point markers (Section 10)
+    // 2. Check click on catalog point markers
     const hits = ray.intersectObjects(group.children, true)
     if (hits.length && hits[0].object.userData?.point) {
       const pt = hits[0].object.userData.point
-      onPointSelect?.(pt)
       focusPoint(pt.latitude, pt.longitude_360)
+      onPointSelect?.(pt)
     }
   }, [onPointSelect])
 
@@ -838,7 +864,7 @@ export default function CinematicMoonHero({
     }
   }
 
-  const zoomIn  = () => { targetCameraZ.current = Math.max(2.0, targetCameraZ.current - 0.4) }
+  const zoomIn = () => { targetCameraZ.current = Math.max(2.0, targetCameraZ.current - 0.4) }
   const zoomOut = () => { targetCameraZ.current = Math.min(5.5, targetCameraZ.current + 0.4) }
 
   // ── Search & Filter Handlers ────────────────────────────────────────────────
@@ -871,25 +897,43 @@ export default function CinematicMoonHero({
   }
 
   return (
-    <section id="hero-moon" className="relative w-full bg-black select-none font-sans">
-      
+    <div className="relative w-full bg-black select-none font-sans">
+
       {/* ── ZONE A: TOP BRAND & MISSION HEADER ───────────────────────────────── */}
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 pt-3 pb-2 text-center">
-        <div className="text-[10px] font-mono tracking-[0.4em] text-neutral-300 uppercase mb-1">
-          CHANDRAVUE · LUNAR MULTI-SENSOR REGISTRATION
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 pt-5 pb-3 text-center">
+        {/* Mission Emblem Badge */}
+        <div className="inline-flex items-center gap-2 px-3.5 py-1 mb-2.5 rounded-full border border-cyan-500/30 bg-cyan-950/30 backdrop-blur-sm">
+          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+          <span className="text-[10px] font-mono tracking-[0.25em] text-cyan-300 uppercase">
+            CHANDRAYAAN-2 LUNAR SURFACE RECONNAISSANCE
+          </span>
+          <span className="text-neutral-500">•</span>
+          <span className="text-[10px] font-mono text-amber-400 tracking-wider font-semibold">
+            SIH-2026 #26166
+          </span>
         </div>
-        <h1 className="text-xl sm:text-3xl md:text-4xl font-mono font-black tracking-[0.14em] text-white uppercase">
-          CHANDRAVUE ENGINE
+
+        {/* Grand Centerpiece Title */}
+        <h1 className="text-4xl sm:text-6xl md:text-7xl font-mono font-black tracking-[0.22em] uppercase leading-none my-1 bg-clip-text text-transparent bg-gradient-to-b from-white via-neutral-100 to-amber-200 drop-shadow-[0_0_35px_rgba(245,158,11,0.3)]">
+          CHANDRAVUE
         </h1>
-        <div className="text-[11px] font-mono text-amber-400 tracking-widest mt-0.5 uppercase">
-          OHRC · TMC-2 · IIRS &nbsp;|&nbsp; SIH-2026 #26166 · Chandrayaan-2 Optical Swath
+
+        {/* Subtitle & Sensor Array Specification */}
+        <div className="flex flex-wrap items-center justify-center gap-2 text-[11px] font-mono text-neutral-300 tracking-widest mt-2 uppercase">
+          <span className="text-amber-400 font-bold">OHRC (0.28m)</span>
+          <span className="text-neutral-600">✕</span>
+          <span className="text-cyan-300 font-bold">TMC-2 (5m)</span>
+          <span className="text-neutral-600">✕</span>
+          <span className="text-emerald-400 font-bold">IIRS (86.5m)</span>
+          <span className="text-neutral-600">|</span>
+          <span className="text-neutral-400">DEEP LEARNING CROSS-SENSOR CORRESPONDENCE</span>
         </div>
       </div>
 
       {/* ── ZONE B: DEDICATED HORIZONTAL MISSION CONTROL STRIP (Section 14 & 15) ─ */}
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 mb-2">
         <div className="border border-white/[0.12] bg-[#05070a]/92 backdrop-blur-md px-3.5 py-2 flex flex-wrap items-center justify-between gap-3 font-mono text-xs shadow-lg">
-          
+
           {/* Left: Coordinate Search Bar */}
           <form onSubmit={handleSearchSubmit} className="flex flex-wrap items-center gap-2" role="search" aria-label="Moon coordinate search">
             <span className="text-[10px] text-neutral-200 font-bold uppercase tracking-wider mr-1 hidden sm:inline">
@@ -943,11 +987,10 @@ export default function CinematicMoonHero({
                 onClick={() => setFilterMode('all')}
                 aria-label={`ALL SITES (${catalogPoints.length}) — Display all catalog sites`}
                 aria-pressed={filterMode === 'all'}
-                className={`px-3 py-1.5 min-h-[38px] text-[10px] font-mono tracking-wider uppercase transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 ${
-                  filterMode === 'all'
+                className={`px-3 py-1.5 min-h-[38px] text-[10px] font-mono tracking-wider uppercase transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 ${filterMode === 'all'
                     ? 'bg-amber-500/20 text-amber-300 border border-amber-500/60 font-bold'
                     : 'text-neutral-300 hover:text-white border border-transparent'
-                }`}
+                  }`}
                 title="Show all catalog observation sites"
               >
                 🌐 ALL SITES ({catalogPoints.length})
@@ -957,11 +1000,10 @@ export default function CinematicMoonHero({
                 onClick={() => setFilterMode('target')}
                 aria-label="TARGET ONLY — Display target point only"
                 aria-pressed={filterMode === 'target'}
-                className={`px-3 py-1.5 min-h-[38px] text-[10px] font-mono tracking-wider uppercase transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-400 ${
-                  filterMode === 'target'
+                className={`px-3 py-1.5 min-h-[38px] text-[10px] font-mono tracking-wider uppercase transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-400 ${filterMode === 'target'
                     ? 'bg-green-500/20 text-green-300 border border-green-500/60 font-bold'
                     : 'text-neutral-300 hover:text-white border border-transparent'
-                }`}
+                  }`}
                 title="Show only the active target or search result"
               >
                 🎯 TARGET ONLY
@@ -971,21 +1013,37 @@ export default function CinematicMoonHero({
             {/* Quick Accessible Site Selector Dropdown (Section 26) */}
             {catalogPoints.length > 0 && (
               <select
-                value={selectedPoint?.id || ''}
+                value={selectedPoint?.id || selectedPoint?.point_id || selectedPoint?.judge_id || ''}
                 onChange={(e) => {
-                  const pt = catalogPoints.find(p => p.id === e.target.value)
+                  const val = e.target.value
+                  const pt = catalogPoints.find(p => (
+                    p.id === val || p.point_id === val || p.judge_id === val || p.preset_id === val
+                  ))
                   if (pt) {
                     onPointSelect?.(pt)
                     focusPoint(pt.latitude, pt.longitude_360)
                   }
                 }}
                 aria-label="Select Observation Site from Catalog"
-                className="bg-[#0a0d14] border border-white/[0.16] text-neutral-200 text-[10px] font-mono px-2.5 py-1.5 min-h-[38px] outline-none hover:border-amber-400 focus-visible:ring-2 focus-visible:ring-amber-400 max-w-[150px] cursor-pointer"
+                className="bg-[#0a0d14] border border-white/[0.2] text-neutral-100 text-[10px] font-mono px-2.5 py-1.5 min-h-[38px] outline-none hover:border-amber-400 focus-visible:ring-2 focus-visible:ring-amber-400 max-w-[190px] cursor-pointer"
               >
-                <option value="">SELECT SITE…</option>
-                {catalogPoints.map(p => (
-                  <option key={p.id} value={p.id}>#{p.id} ({p.latitude.toFixed(2)}°N)</option>
-                ))}
+                <option value="">SELECT LUNAR SITE…</option>
+                {catalogPoints.map(p => {
+                  const id = p.id || p.point_id || p.judge_id || p.preset_id
+                  const isReal = Boolean(
+                    p.judge_id === 'JUDGE_0001' ||
+                    p.judge_id === 'JUDGE_0002' ||
+                    p.judge_id === 'JUDGE_0003' ||
+                    p.judge_id === 'JUDGE_0004' ||
+                    id === '2267' || id === '3463' || id === '5353' || id === '7674' ||
+                    p.is_sih_beacon
+                  )
+                  return (
+                    <option key={id} value={id}>
+                      {isReal ? '🟢 ' : '🔵 '}#{id} ({p.latitude.toFixed(2)}°N)
+                    </option>
+                  )
+                })}
               </select>
             )}
 
@@ -1007,7 +1065,7 @@ export default function CinematicMoonHero({
 
       {/* ── ZONE C: UNOBSTRUCTED CENTRAL MOON VIEWPORT (Section 12 & 13) ──────── */}
       <div className="relative w-full overflow-hidden" style={{ height: 660 }}>
-        
+
         {/* Top-Left Corner Zone: Catalog Telemetry & Swath Details */}
         <div className="absolute top-4 left-6 z-20 font-mono pointer-events-none space-y-1">
           <div className="border border-white/[0.1] bg-black/80 backdrop-blur-md px-3 py-1.5 text-[10px]">
@@ -1081,11 +1139,10 @@ export default function CinematicMoonHero({
             onClick={toggleRotate}
             aria-label="Toggle Lunar Auto-Rotation"
             aria-pressed={isRotating}
-            className={`px-3 py-2 min-h-[38px] border transition-all uppercase tracking-wider cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 ${
-              isRotating
+            className={`px-3 py-2 min-h-[38px] border transition-all uppercase tracking-wider cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 ${isRotating
                 ? 'border-amber-500/60 bg-amber-500/15 text-amber-300 font-bold'
                 : 'border-white/[0.16] bg-black/80 text-neutral-300 hover:text-white'
-            }`}
+              }`}
             title="Toggle Lunar Auto-Rotation"
           >
             ↻ {isRotating ? 'ROTATING' : 'ROTATE OFF'}
@@ -1376,6 +1433,6 @@ export default function CinematicMoonHero({
           DRAG TO ORBIT · SCROLL TO ZOOM · CLICK MARKER TO INSPECT
         </div>
       </div>
-    </section>
+    </div>
   )
 }
