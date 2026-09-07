@@ -141,6 +141,7 @@ def compute_cross_sensor_matches(
         return {
             "ohrc_tmc2": [],
             "tmc2_iirs": [],
+            "ohrc_iirs": [],
             "mean_confidence": 0.0,
             "total_inliers": 0,
             "status": "integration_pending",
@@ -149,19 +150,22 @@ def compute_cross_sensor_matches(
     try:
         ot_matches = _LOFTR_MODEL.match_pair(ohrc, tmc2, top_k=5)
         ti_matches = _LOFTR_MODEL.match_pair(tmc2, iirs, top_k=4)
+        oi_matches = _LOFTR_MODEL.match_pair(ohrc, iirs, top_k=4)
     except Exception:
         ot_matches = []
         ti_matches = []
+        oi_matches = []
 
-    all_conf = [m["confidence"] for m in ot_matches + ti_matches]
+    all_conf = [m["confidence"] for m in ot_matches + ti_matches + oi_matches]
     mean_conf = float(np.mean(all_conf)) if all_conf else 0.0
 
     res = {
         "ohrc_tmc2": ot_matches,
         "tmc2_iirs": ti_matches,
+        "ohrc_iirs": oi_matches,
         "mean_confidence": round(mean_conf, 4),
-        "total_inliers": len(ot_matches) + len(ti_matches),
-        "status": "ok" if (ot_matches or ti_matches) else "no_matches",
+        "total_inliers": len(ot_matches) + len(ti_matches) + len(oi_matches),
+        "status": "ok" if (ot_matches or ti_matches or oi_matches) else "no_matches",
     }
 
     if cache_key:

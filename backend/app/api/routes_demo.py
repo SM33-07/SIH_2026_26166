@@ -83,13 +83,13 @@ def get_demo_point(
     8. Post-inference ground-truth reference validation
     """
     t0 = time.perf_counter()
-    clean_id = judge_id.strip().upper()
+    clean_id = common_point_service.resolve_judge_id(judge_id)
     judge_row = common_point_service.get_judge_point(clean_id)
 
     if judge_row is None:
         raise HTTPException(
             status_code=404,
-            detail=f"Judge point '{clean_id}' not found. Valid range: JUDGE_0001 - JUDGE_0500.",
+            detail=f"Judge point '{clean_id}' not found. Valid range: JUDGE_0001 - JUDGE_0500 or SIH demo aliases (2267, 3463, 5353, 7674).",
         )
 
     common_id = str(judge_row.get("Common_Point_ID", ""))

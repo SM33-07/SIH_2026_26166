@@ -8,6 +8,7 @@ from app.config import settings
 router = APIRouter(tags=["Provenance"])
 
 
+@router.get("/provenance")
 @router.get("/provenance/models")
 def get_model_provenance() -> dict[str, Any]:
     """Return model provenance, parameter counts, and checkpoint metadata."""

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import io
 from typing import Any
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 import numpy as np
 from PIL import Image
 
@@ -14,8 +14,8 @@ router = APIRouter(tags=["Match"])
 MAX_UPLOAD_BYTES = 20 * 1024 * 1024  # 20 MB
 
 
-def _decode_image_upload(file_bytes: bytes, filename: str) -> np.ndarray:
-    """Safely decode uploaded file bytes (PNG, JPEG, TIFF, or NPY) into a 2D numpy array."""
+def _decode_image_upload(file_bytes: bytes, filename: str) -> tuple[np.ndarray, dict[str, Any]]:
+    """Safely decode uploaded file bytes (PNG, JPEG, TIFF, or NPY) into a 2D numpy array and metadata."""
     if len(file_bytes) > MAX_UPLOAD_BYTES:
         raise ValueError(f"File {filename} exceeds maximum allowed size of 20MB.")
 
@@ -23,27 +23,48 @@ def _decode_image_upload(file_bytes: bytes, filename: str) -> np.ndarray:
     if filename.lower().endswith(".npy") or file_bytes[:6] == b"\x93NUMPY":
         try:
             arr = np.load(io.BytesIO(file_bytes))
+            meta = {
+                "filename": filename,
+                "format": "NPY",
+                "bytes": len(file_bytes),
+                "original_shape": list(arr.shape),
+                "dtype": str(arr.dtype),
+            }
             if arr.ndim == 3 and arr.shape[2] == 1:
                 arr = arr[:, :, 0]
             elif arr.ndim == 3:
                 arr = np.mean(arr, axis=2)
-            return arr.astype(np.float32)
+            meta["dimensions"] = [int(arr.shape[1]), int(arr.shape[0])]  # [width, height]
+            return arr.astype(np.float32), meta
         except Exception as e:
             raise ValueError(f"Failed to decode NPY tensor from {filename}: {e}")
 
     # Standard image format (PNG, JPG, TIFF) via PIL
     try:
-        img = Image.open(io.BytesIO(file_bytes)).convert("L")
-        return np.array(img, dtype=np.float32)
+        with Image.open(io.BytesIO(file_bytes)) as pil_img:
+            w, h = pil_img.size
+            fmt = pil_img.format or "IMAGE"
+            grayscale = pil_img.convert("L")
+            arr = np.array(grayscale, dtype=np.float32)
+            meta = {
+                "filename": filename,
+                "format": fmt,
+                "bytes": len(file_bytes),
+                "dimensions": [w, h],
+            }
+            return arr, meta
     except Exception as e:
         raise ValueError(f"Failed to decode image from {filename}: {e}")
 
 
+@router.post("/upload/three-sensor", response_model=ThreeImageMatchResponse)
 @router.post("/match/three-images", response_model=ThreeImageMatchResponse)
 async def match_three_images(
     ohrc_image: UploadFile = File(...),
     tmc2_image: UploadFile = File(...),
     iirs_image: UploadFile = File(...),
+    latitude: Optional[float] = Form(None),
+    longitude: Optional[float] = Form(None),
 ) -> ThreeImageMatchResponse:
     """Multi-modal cross-sensor matching pipeline over uploaded sensor imagery."""
     warnings: list[str] = []
@@ -54,9 +75,9 @@ async def match_three_images(
         tmc2_bytes = await tmc2_image.read()
         iirs_bytes = await iirs_image.read()
 
-        ohrc_arr = _decode_image_upload(ohrc_bytes, ohrc_image.filename or "ohrc.png")
-        tmc2_arr = _decode_image_upload(tmc2_bytes, tmc2_image.filename or "tmc2.png")
-        iirs_arr = _decode_image_upload(iirs_bytes, iirs_image.filename or "iirs.png")
+        ohrc_arr, ohrc_meta = _decode_image_upload(ohrc_bytes, ohrc_image.filename or "ohrc.png")
+        tmc2_arr, tmc2_meta = _decode_image_upload(tmc2_bytes, tmc2_image.filename or "tmc2.png")
+        iirs_arr, iirs_meta = _decode_image_upload(iirs_bytes, iirs_image.filename or "iirs.png")
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
@@ -105,11 +126,22 @@ async def match_three_images(
         geometric_evidence=geom_evidence,
     )
 
+    common_loc = None
+    if latitude is not None and longitude is not None:
+        common_loc = {"latitude": float(latitude), "longitude": float(longitude)}
+
+    upload_meta = {
+        "ohrc": ohrc_meta,
+        "tmc2": tmc2_meta,
+        "iirs": iirs_meta,
+        "provided_coordinates": common_loc,
+    }
+
     return ThreeImageMatchResponse(
         status="ok" if total_inliers > 0 else "inconclusive",
         decision=verdict,
         consistency_score=score,
-        common_location=None,  # Not fabricated when telemetry absent
+        common_location=common_loc,
         pairwise=pairwise,
         evidence={
             "explanation": explanation,
@@ -123,4 +155,6 @@ async def match_three_images(
             "architecture": "11.56M Parameters (8 Coarse + 2 Fine Attention Transformer Layers)",
             "pipeline": "LOCATE -> MATCH -> VERIFY -> DECIDE",
         },
+        source_type="manual_upload",
+        upload_metadata=upload_meta,
     )

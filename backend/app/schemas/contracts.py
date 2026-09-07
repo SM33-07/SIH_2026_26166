@@ -110,6 +110,22 @@ class CommonPointDetailResponse(BaseModel):
     three_sensor_common: bool = True
 
 
+class LunarPoint(BaseModel):
+    point_id: str
+    latitude: float
+    longitude: float       # normalized to [-180, 180]
+    longitude_360: float
+    region: Optional[str] = None
+    mapped: bool = False
+    analysis_ready: bool = False
+    is_sih_beacon: bool = False
+    judge_id: Optional[str] = None
+    preset_id: Optional[str] = None
+    sensors_available: list[str] = Field(default_factory=list)
+    consistency_score: Optional[float] = None
+    max_sensor_separation_deg: Optional[float] = None
+
+
 class ThreeImageMatchResponse(BaseModel):
     status: str
     decision: str
@@ -121,6 +137,8 @@ class ThreeImageMatchResponse(BaseModel):
     images: Optional[dict[str, str]] = None
     warnings: list[str] = Field(default_factory=list)
     provenance: dict[str, Any]
+    source_type: Optional[str] = "manual_upload"
+    upload_metadata: Optional[dict[str, Any]] = None
 
 
 class ErrorResponse(BaseModel):

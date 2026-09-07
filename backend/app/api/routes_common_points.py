@@ -10,6 +10,28 @@ from app.services import common_point_service
 router = APIRouter(tags=["CommonPoints"])
 
 
+@router.get("/lunar-points")
+def list_lunar_points(
+    limit: int = Query(default=120, ge=10, le=500, description="Max points to return for 3D Moon hero.")
+) -> dict[str, Any]:
+    """Return lunar points with backend-authoritative mapped and analysis_ready states.
+
+    Point hierarchy:
+    - AMBER: Fixed SIH demo beacons (Pairs 2267, 3463, 5353, 7674 -> JUDGE_0001-0004)
+    - CYAN: Mapped & analysis_ready scenes with verified sensor assets
+    - DIM: Catalog observations with spatial index data
+    - VERY DIM: Global visual landmarks
+    """
+    points = common_point_service.get_authoritative_lunar_points(limit=limit)
+    return {
+        "points": points,
+        "count": len(points),
+        "sih_beacons_count": sum(1 for p in points if p.get("is_sih_beacon")),
+        "mapped_count": sum(1 for p in points if p.get("mapped")),
+        "analysis_ready_count": sum(1 for p in points if p.get("analysis_ready")),
+    }
+
+
 @router.get("/common-points")
 def list_common_points(
     limit: Optional[int] = Query(default=50, ge=1, le=500, description="Maximum number of points to return."),
@@ -44,17 +66,27 @@ def list_common_points(
 
     points = []
     for _, row in working.iterrows():
+        cid = str(row.get("Common_Point_ID", ""))
+        has_ohrc = row.get("OHRC_tile_id") is not None
+        has_tmc2 = row.get("Patch_ID") is not None
+        has_iirs = row.get("IIRS_row") is not None
+        lon360 = float(row.get("Longitude_360", 0.0))
+        lon = ((lon360 + 180) % 360) - 180
+
         points.append({
-            "id": str(row.get("Common_Point_ID", "")),
+            "id": cid,
             "latitude": float(row.get("Common_Latitude", row.get("Latitude", 0.0))),
-            "longitude_360": float(row.get("Longitude_360", 0.0)),
-            "ohrc_tile_id": int(row["OHRC_tile_id"]) if row.get("OHRC_tile_id") is not None else None,
-            "patch_id": int(row["Patch_ID"]) if row.get("Patch_ID") is not None else None,
+            "longitude": lon,
+            "longitude_360": lon360,
+            "ohrc_tile_id": int(row["OHRC_tile_id"]) if has_ohrc else None,
+            "patch_id": int(row["Patch_ID"]) if has_tmc2 else None,
             "consistency_score": float(row.get("Consistency_Score", 0.0)),
             "three_sensor_common": bool(row.get("ThreeSensor_Common", True)),
-            "ohrc_available": row.get("OHRC_tile_id") is not None,
-            "tmc2_available": row.get("Patch_ID") is not None,
-            "iirs_available": row.get("IIRS_row") is not None,
+            "ohrc_available": has_ohrc,
+            "tmc2_available": has_tmc2,
+            "iirs_available": has_iirs,
+            "mapped": has_ohrc and has_tmc2,
+            "analysis_ready": False,
         })
 
     return {
