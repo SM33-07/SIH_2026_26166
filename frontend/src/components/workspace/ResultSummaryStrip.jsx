@@ -19,6 +19,11 @@ export default function ResultSummaryStrip({ result = null, activePair = 'OHRC_T
   const rmse = result.alignment?.rmse != null ? `${result.alignment.rmse.toFixed(2)} px` : 'N/A'
   const runtime = result.runtimeMs != null ? `${result.runtimeMs.toFixed(0)} ms` : 'N/A'
 
+  const rawRatio = pairData.inlierRatio
+  const inlierRatio = rawRatio != null
+    ? `${(rawRatio * 100).toFixed(1)}%`
+    : 'N/A'
+
   const metrics = [
     { label: 'MATCHES', val: matchCount, highlight: false },
     { label: 'INLIERS', val: inlierCount, highlight: true },
